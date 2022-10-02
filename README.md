@@ -8,10 +8,30 @@ Roadmap:
 
 - ✅ Build crawler skeleton with parallel crawlers and appropriate communication channels
 - ✅ Implement dummy crawler
-- 👷 Implement first real crawler
-- 🕐 Implement more crawlers
+- ✅ Implement first real crawler
+- 👷 Implement more crawlers
 - 🕐 Add persistence layer
 - 🕐 Build API to fetch persisted results
 - 🕐 Decide on and terraform infrastructure (k8s vs cloud-native?)
 - 🕐 Build CI pipeline
 - 🕐 Ask someone to help me build a front-end?
+
+### Instructions
+
+```shell
+# Build binaries (output: ./.build/.artifacts):
+make build
+```
+
+```shell
+# Build container images (image name "bolan"):
+make image
+```
+
+```shell
+# run web server in docker
+docker run bolan
+
+# run crawler in docker
+docker run bolan --entrypoint /crawler]
+```

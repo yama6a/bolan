@@ -12,7 +12,8 @@ func main() {
 
 	crawlers := []crawler.SiteCrawler{
 		//crawler.NewDummyCrawler(logger.Named("DummyCrawler")),
-		crawler.NewDanskeBankCrawler(logger.Named("DanskeBankCrawler")),
+		//crawler.NewDanskeBankCrawler(logger.Named("DanskeBankCrawler")),
+		crawler.NewSebBankCrawler(logger.Named("seb-crawler")),
 	}
 
 	pgStore := store.NewPostgres(nil, logger.Named("PG Store"))

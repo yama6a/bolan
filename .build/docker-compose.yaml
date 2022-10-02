@@ -1,0 +1,10 @@
+version: "3"
+services:
+  postgis:
+    image: postgres/postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: db

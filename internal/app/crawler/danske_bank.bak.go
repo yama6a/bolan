@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/civil"
 	"github.com/antchfx/htmlquery"
 	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
@@ -44,7 +43,7 @@ func (d DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 		return
 	}
 	if len(nodes) != 2 { // regular and union-subsidized
-		d.logger.Error("failed to find both tables with interest rates", zap.Error(err))
+		d.logger.Error("failed to find both tables with interest rates", zap.Error(err), zap.Any("nodes", nodes))
 		return
 	}
 
@@ -95,19 +94,18 @@ func (d DanskeBankCrawler) parseTable(table *html.Node, crawlTime time.Time) ([]
 			return nil, fmt.Errorf("failed to parse term for row %v: %w", row, err)
 		}
 		for i, cell := range row.fields {
-			nominalRate, effectiveRate, err := parseInterestRatesFromCellText(cell)
+			nominalRate, _, err := parseInterestRatesFromCellText(cell)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse interest rates for row %v: %w", row, err)
 			}
 			sets = append(sets, model.InterestSet{
 				Bank:                    DanskeBankName,
 				NominalRate:             nominalRate,
-				EffectiveRate:           effectiveRate,
 				Term:                    term,
 				Type:                    model.TypeRatioDiscounted,
 				RatioDiscountBoundaries: &discountBoundaries[i],
 				UnionDiscount:           false,
-				ChangedOn:               civil.DateOf(time.Now()), //todo: read from list-price-table[term]
+				ChangedOn:               nil, //todo: read ChangedOn from list-price-table[term]
 				LastCrawledAt:           crawlTime,
 			})
 		}

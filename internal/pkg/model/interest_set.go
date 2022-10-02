@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"cloud.google.com/go/civil"
 )
 
 const (
@@ -19,9 +17,10 @@ const (
 	Term9years  Term = "9y"
 	Term10years Term = "10y"
 
-	TypeListRate        Type = "list"
-	TypeAvgRate         Type = "average"
-	TypeRatioDiscounted Type = "ratioDiscounted"
+	TypeListRate        Type = "listRate"
+	TypeAverageRate     Type = "averageRate"
+	TypeRatioDiscounted Type = "ratioDiscountedRate"
+	TypeUnionDiscounted Type = "unionDiscountedRate"
 )
 
 type Term string
@@ -34,13 +33,19 @@ type RatioDiscountBoundary struct {
 }
 
 type InterestSet struct {
-	Bank                    Bank
-	NominalRate             float32
-	EffectiveRate           float32
-	Term                    Term
-	Type                    Type
-	RatioDiscountBoundaries *RatioDiscountBoundary
-	UnionDiscount           bool
-	ChangedOn               civil.Date
-	LastCrawledAt           time.Time
+	Bank          Bank
+	Type          Type
+	Term          Term
+	NominalRate   float32
+	ChangedOn     *time.Time
+	LastCrawledAt time.Time
+
+	RatioDiscountBoundaries *RatioDiscountBoundary // only for type ratioDiscounted
+	UnionDiscount           bool                   // only true for type unionDiscounted
+	AverageReferenceMonth   *AvgMonth              // only for type average
+}
+
+type AvgMonth struct {
+	Month time.Month
+	Year  uint
 }
