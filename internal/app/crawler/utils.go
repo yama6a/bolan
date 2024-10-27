@@ -19,6 +19,7 @@ var (
 	isoDateRegex           = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`)   // YYYY-MM-DD
 	swedishDashedDateRegex = regexp.MustCompile(`^([0-2][1-9]|[1-3]0|3[01])-(0[1-9]|1[0-2])-(\d{2})$`)   // DD-MM-YY
 	swedishDottedDateRegex = regexp.MustCompile(`^([0-2][1-9]|[1-3]0|3[01])\.(0[1-9]|1[0-2])\.(\d{2})$`) // DD.MM.YY
+	yearMonthReferenceDate = regexp.MustCompile(`^(\d{2})(0[1-9]|1[0-2])$`)                              // YYMM
 
 	DecoderWindows1252 Decoder = func(runes []byte) (str string) {
 		for _, r := range runes {
@@ -100,6 +101,37 @@ func parseNominalRate(data string) (float32, error) {
 	}
 
 	return float32(rate), nil
+}
+
+func parseReferenceMonth(data uint, regex *regexp.Regexp) (model.AvgMonth, error) {
+	matches := regex.FindStringSubmatch(fmt.Sprintf("%d", data))
+	if len(matches) != 3 {
+		return model.AvgMonth{}, ErrUnsupportedAvgMonth
+	}
+
+	year, err := strconv.Atoi(matches[1])
+	if err != nil || year < 0 {
+		return model.AvgMonth{}, fmt.Errorf("failed to parse year: %w", err)
+	}
+
+	month, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return model.AvgMonth{}, fmt.Errorf("failed to parse month: %w", err)
+	}
+
+	// assume all double-digit year numbers lower than 40 are from the 21st century, otherwise 20th century. This will
+	// ensure that this function works until the year 2039 and assumes we don't get historical data from before 1940
+	// presented in this format.
+	if year < 40 {
+		year += 2000
+	} else {
+		year += 1900
+	}
+
+	return model.AvgMonth{
+		Year:  uint(year),
+		Month: time.Month(month),
+	}, nil
 }
 
 func parseTerm(data string) (model.Term, error) {

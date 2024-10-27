@@ -47,12 +47,12 @@ func (c *SebBankCrawler) Crawl(channel chan<- model.InterestSet) {
 		c.logger.Error("failed fetching SEB list rates", zap.Error(err))
 	}
 
-	//avgRates, err := c.fetchAverageRates(apiKey)
-	//if err != nil {
-	//	c.logger.Error("failed fetching SEB average rates", zap.Error(err))
-	//}
+	avgRates, err := c.fetchAverageRates(apiKey, crawlTime)
+	if err != nil {
+		c.logger.Error("failed fetching SEB average rates", zap.Error(err))
+	}
 
-	for _, set := range listRates {
+	for _, set := range append(listRates, avgRates...) {
 		channel <- set
 	}
 }
@@ -83,14 +83,12 @@ func (c *SebBankCrawler) fetchApiKey() (string, error) {
 	return apiKey, nil
 }
 
-type sebListRates struct {
+type sebListRatesResponseItem struct {
 	AdjustmentTerm string  `json:"adjustmentTerm"`
 	Change         float32 `json:"change"`
 	StartDate      string  `json:"startDate"`
 	Value          float32 `json:"value"`
 }
-
-type sebListRatesResponse []sebListRates
 
 func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
 	rawJson, err := c.fetchRawContentFromUrl(sebListRateUrl, DecoderUtf8, apiKey)
@@ -98,7 +96,7 @@ func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]m
 		return nil, fmt.Errorf("failed reading SEB list rates API: %w", err)
 	}
 
-	var listRates []sebListRates
+	var listRates []sebListRatesResponseItem
 	if err := json.Unmarshal([]byte(rawJson), &listRates); err != nil {
 		c.logger.Error("failed unmarshalling SEB list rates", zap.Error(err), zap.String("rawJson", rawJson))
 		return nil, fmt.Errorf("failed unmarshalling SEB list rates: %w", err)
@@ -144,4 +142,48 @@ func (c *SebBankCrawler) fetchRawContentFromUrl(url string, decoder Decoder, api
 	}
 
 	return fetchRawContentFromUrl(url, decoder, headers)
+}
+
+type sebAverageRatesResponse struct {
+	Period uint               `json:"period"`
+	Rates  map[string]float32 `json:"rates"`
+}
+
+func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
+	rawJson, err := c.fetchRawContentFromUrl(sebAverageRatesUrl, DecoderUtf8, apiKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading SEB average rates API: %w", err)
+	}
+
+	var avgRates sebAverageRatesResponse
+	if err := json.Unmarshal([]byte(rawJson), &avgRates); err != nil {
+		c.logger.Error("failed unmarshalling SEB average rates", zap.Error(err), zap.String("rawJson", rawJson))
+		return nil, fmt.Errorf("failed unmarshalling SEB average rates: %w", err)
+	}
+
+	period, err := parseReferenceMonth(avgRates.Period, yearMonthReferenceDate)
+
+	interestSets := []model.InterestSet{}
+	for termStr, rate := range avgRates.Rates {
+		term, err := parseTerm(termStr)
+		if err != nil {
+			c.logger.Warn("SEB average rate term not supported - skipping", zap.String("term", termStr), zap.Error(err))
+			continue
+		}
+
+		interestSets = append(interestSets, model.InterestSet{
+			AverageReferenceMonth: &period,
+			Bank:                  sebBankName,
+			Type:                  model.TypeAverageRate,
+			Term:                  term,
+			NominalRate:           rate,
+			LastCrawledAt:         crawlTime,
+
+			RatioDiscountBoundaries: nil,
+			UnionDiscount:           false,
+			ChangedOn:               nil,
+		})
+	}
+
+	return interestSets, nil
 }
