@@ -4,19 +4,23 @@ import (
 	"github.com/ymakhloufi/bolan-compare/internal/app/crawler"
 	"github.com/ymakhloufi/bolan-compare/internal/pkg/store"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
-	logger, err := zap.NewDevelopment()
+	loggerConfig := zap.NewDevelopmentConfig()
+	loggerConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	loggerConfig.DisableStacktrace = true
+	logger, err := loggerConfig.Build()
 	noErr(err)
 
 	crawlers := []crawler.SiteCrawler{
 		//crawler.NewDummyCrawler(logger.Named("DummyCrawler")),
-		crawler.NewDanskeBankCrawler(logger.Named("DanskeBankCrawler")),
+		crawler.NewDanskeBankCrawler(logger.Named("danske-bank-crawler")),
 		crawler.NewSebBankCrawler(logger.Named("seb-crawler")),
 	}
 
-	pgStore := store.NewPostgres(nil, logger.Named("PG Store"))
+	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))
 	svc := crawler.NewService(pgStore, crawlers, logger.Named("Crawler Svc"))
 
 	svc.Crawl()

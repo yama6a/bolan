@@ -30,11 +30,11 @@ func NewDanskeBankCrawler(logger *zap.Logger) *DanskeBankCrawler {
 	return &DanskeBankCrawler{logger: logger}
 }
 
-func (c DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
+func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 
 	crawlTime := time.Now().UTC()
-	rawHtml, err := fetchHtmlFromUrl(danskeUrl, DecoderUtf8)
+	rawHtml, err := fetchRawContentFromUrl(danskeUrl, DecoderUtf8, nil)
 	if err != nil {
 		c.logger.Error("failed reading Danske website for ListRates", zap.Error(err))
 		return
@@ -73,7 +73,7 @@ func (c DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	}
 }
 
-func (c DanskeBankCrawler) parseListRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
+func (c *DanskeBankCrawler) parseListRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
 	interestSets := []model.InterestSet{}
 	tokenizer, err := findTokenizedTableByTextBeforeTable(rawHtml, "Bankens aktuella")
 	if err != nil {
@@ -110,7 +110,7 @@ func (c DanskeBankCrawler) parseListRates(rawHtml string, crawlTime time.Time) (
 	return nil, tokenizer.Err()
 }
 
-func (c DanskeBankCrawler) extractListInterestSetFromRow(tokenizer *html.Tokenizer, crawlTime time.Time) (model.InterestSet, error) {
+func (c *DanskeBankCrawler) extractListInterestSetFromRow(tokenizer *html.Tokenizer, crawlTime time.Time) (model.InterestSet, error) {
 	interestSet := model.InterestSet{
 		Bank:          danskeBankName,
 		Type:          model.TypeListRate,

@@ -9,6 +9,7 @@ import (
 
 type Store interface {
 	UpsertInterestSet(set model.InterestSet) error
+	GetInterestSets() []model.InterestSet
 }
 
 type SiteCrawler interface {
@@ -29,7 +30,7 @@ func NewService(store Store, crawlers []SiteCrawler, logger *zap.Logger) *Servic
 	}
 }
 
-func (s Service) Crawl() {
+func (s *Service) Crawl() {
 	var wg sync.WaitGroup
 	objChan := make(chan model.InterestSet)
 
@@ -45,17 +46,21 @@ func (s Service) Crawl() {
 
 	wg.Wait()
 	s.logger.Info("all crawlers finished, closing channels")
+
+	s.logger.Info("Found interestSets:")
+	for _, is := range s.store.GetInterestSets() {
+		s.logger.Info("interestSet", zap.Any("interestSet", is))
+	}
+
 	close(objChan)
 }
 
-func (s Service) recv(c <-chan model.InterestSet) {
+func (s *Service) recv(c <-chan model.InterestSet) {
 	s.logger.Info("starting crawler receiver")
 
 	for set := range c {
 		if err := s.store.UpsertInterestSet(set); err != nil {
 			s.logger.Error("failed to upsert interestSet", zap.Any("interestSet", set), zap.Error(err))
 		}
-
-		s.logger.Info("successfully upserted interestSet", zap.Any("interestSet", set))
 	}
 }
