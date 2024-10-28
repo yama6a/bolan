@@ -1,4 +1,4 @@
-package crawler
+package errors
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	ErrNoMoreRows               = errors.New("no more rows")
 	ErrNoInterestSetFound       = errors.New("no interest set found")
 	ErrUnsupportedTerm          = errors.New("unsupported term")
 	ErrUnsupportedInterestRate  = errors.New("unsupported interest rate")

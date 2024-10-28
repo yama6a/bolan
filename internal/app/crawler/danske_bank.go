@@ -1,25 +1,55 @@
 package crawler
 
 import (
-	"errors"
 	"fmt"
-	"io"
+	errors2 "github.com/ymakhloufi/bolan-compare/internal/pkg/errors"
+	"github.com/ymakhloufi/bolan-compare/internal/pkg/utils"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
-	"golang.org/x/net/html"
 )
 
 const (
-	danskeUrl = "https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolanerantor"
-
+	danskeUrl                 = "https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolanerantor"
 	danskeBankName model.Bank = "Danske Bank"
 )
 
 var (
 	_ SiteCrawler = &DanskeBankCrawler{}
+
+	// YY-MM-DD
+	changedDateRegex = regexp.MustCompile(`^(\d{2})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`)
+	interestRegex    = regexp.MustCompile(`^(\d+\.\d+ ?)%?$`)
+
+	swedishMonthMap = map[string]time.Month{
+		"januari":   time.January,
+		"februari":  time.February,
+		"mars":      time.March,
+		"april":     time.April,
+		"maj":       time.May,
+		"juni":      time.June,
+		"juli":      time.July,
+		"augusti":   time.August,
+		"september": time.September,
+		"oktober":   time.October,
+		"november":  time.November,
+		"december":  time.December,
+		"jan":       time.January,
+		"feb":       time.February,
+		"mar":       time.March,
+		"apr":       time.April,
+		"jun":       time.June,
+		"jul":       time.July,
+		"aug":       time.August,
+		"sep":       time.September,
+		"oct":       time.October,
+		"nov":       time.November,
+		"dec":       time.December,
+	}
 )
 
 type DanskeBankCrawler struct {
@@ -34,168 +64,259 @@ func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 
 	crawlTime := time.Now().UTC()
-	rawHtml, err := fetchRawContentFromUrl(danskeUrl, DecoderUtf8, nil)
+	rawHtml, err := utils.FetchRawContentFromUrl(danskeUrl, utils.DecoderUtf8, nil)
 	if err != nil {
 		c.logger.Error("failed reading Danske website for ListRates", zap.Error(err))
 		return
 	}
 
-	listInterestSets, err := c.parseListRates(rawHtml, crawlTime)
+	listInterestSets, err := c.extractListRates(rawHtml, crawlTime)
 	if err != nil {
 		c.logger.Error("failed parsing Danske List Rates website", zap.Error(err))
 	} else {
 		interestSets = append(interestSets, listInterestSets...)
 	}
 
-	//discountedInterest, err := c.parseDiscountedRates(rawHtml, crawlTime)
-	//if err != nil {
-	//	c.logger.Error("failed parsing Danske Avg Rates website", zap.Error(err))
-	//} else {
-	//	interestSets = append(interestSets, discountedInterest...)
-	//}
-
-	//avgInterest, err := c.parseAverageRates(sebAverageRatesUrl, model.TypeAverageRate)
-	//if err != nil {
-	//	c.logger.Error("failed parsing Danske Avg Rates website", zap.Error(err))
-	//} else {
-	//	interestSets = append(interestSets, avgInterest...)
-	//}
-	//
-	//unionInterest, err := c.parseUnionRates(sebAverageRatesUrl, model.TypeAverageRate)
-	//if err != nil {
-	//	c.logger.Error("failed parsing Danske Avg Rates website", zap.Error(err))
-	//} else {
-	//	interestSets = append(interestSets, unionInterest...)
-	//}
+	avgInterest, err := c.extractAverageRates(rawHtml, crawlTime)
+	if err != nil {
+		c.logger.Error("failed parsing Danske Avg Rates website", zap.Error(err))
+	} else {
+		interestSets = append(interestSets, avgInterest...)
+	}
 
 	for _, set := range interestSets {
 		channel <- set
 	}
 }
 
-func (c *DanskeBankCrawler) parseListRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
-	interestSets := []model.InterestSet{}
-	tokenizer, err := findTokenizedTableByTextBeforeTable(rawHtml, "Bankens aktuella")
+func (c *DanskeBankCrawler) extractListRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHtml, "Bankens aktuella")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find table by text 'Bankens aktuella' before table: %w", err)
 	}
 
-	for node := tokenizer.Next(); node != html.ErrorToken; node = tokenizer.Next() {
-		switch node {
-		case html.EndTagToken:
-			tkn := tokenizer.Token()
-			if tkn.Data == "table" {
-				return interestSets, nil
-			}
-		case html.StartTagToken:
-			tkn := tokenizer.Token()
-			if tkn.Data != "tr" {
-				continue
-			}
+	table, err := utils.ParseTable(tokenizer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse table: %w", err)
+	}
 
-			interestSet, err := c.extractListInterestSetFromRow(tokenizer, crawlTime)
-			if err != nil {
-				if errors.Is(err, ErrNoInterestSetFound) {
-					continue // ignore rows for which no interest set could be extracted, e.g. table header rows
-				}
-				return nil, err
-			}
-			interestSets = append(interestSets, interestSet)
+	utils.PrintTable(table)
+
+	interestSets := []model.InterestSet{}
+	for _, row := range table.Rows {
+		term, err := utils.ParseTerm(row[0])
+		if err != nil {
+			c.logger.Warn("failed to parse term", zap.String("term", row[0]), zap.Error(err))
+			continue
+		}
+
+		changedOn, err := parseChangeDate(row[1])
+		if err != nil {
+			c.logger.Warn("failed to parse change date", zap.String("date", row[1]), zap.Error(err))
+			continue
+		}
+
+		rate, err := parseNominalRate(row[3])
+		if err != nil {
+			c.logger.Warn("failed to parse rate", zap.String("rate", row[3]), zap.Error(err))
+			continue
+		}
+
+		interestSets = append(interestSets, model.InterestSet{
+			Bank:          danskeBankName,
+			Type:          model.TypeListRate,
+			Term:          term,
+			NominalRate:   rate,
+			ChangedOn:     &changedOn,
+			LastCrawledAt: crawlTime,
+
+			RatioDiscountBoundaries: nil,
+			UnionDiscount:           false,
+			AverageReferenceMonth:   nil,
+		})
+	}
+
+	return interestSets, nil
+}
+
+func (c *DanskeBankCrawler) extractAverageRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHtml, "Genomsnittlig historisk")
+	if err != nil {
+		return nil, fmt.Errorf("failed to find table by text 'Genomsnittlig historisk' before table: %w", err)
+	}
+
+	table, err := utils.ParseTable(tokenizer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse table: %w", err)
+	}
+
+	table, err = c.sanitizeAvgRows(table)
+
+	// parse header strings to terms
+	// map[columnIdx]model.Term
+	terms := map[int]model.Term{}
+	for i, t := range table.Header {
+		term, err := utils.ParseTerm(t)
+		if err == nil {
+			terms[i] = term
+		} else {
+			c.logger.Info("failed to parse term", zap.String("term", t), zap.Error(err))
 		}
 	}
 
-	if tokenizer.Err() == io.EOF {
-		return nil, fmt.Errorf("no closing table-tag found, EOF: %w", ErrNoInterestSetFound)
-	}
-	return nil, tokenizer.Err()
-}
+	interestSets := []model.InterestSet{}
+	for _, row := range table.Rows {
+		refMonth, err := c.parseReferenceMonth(row[0])
+		if err != nil {
+			continue
+		}
 
-func (c *DanskeBankCrawler) extractListInterestSetFromRow(tokenizer *html.Tokenizer, crawlTime time.Time) (model.InterestSet, error) {
-	interestSet := model.InterestSet{
-		Bank:          danskeBankName,
-		Type:          model.TypeListRate,
-		LastCrawledAt: crawlTime,
-	}
-
-loop:
-	for {
-		switch tokenizer.Next() {
-
-		case html.ErrorToken:
-			err := tokenizer.Err()
-			c.logger.Debug("error token", zap.Any("error", err))
-			if err == io.EOF {
-				return interestSet, nil
-			}
-			return model.InterestSet{}, err
-
-		case html.EndTagToken:
-			data := tokenizer.Token().Data
-			if data == "tr" {
-				c.logger.Debug("end TR tag, breaking loop!", zap.Any("token", data))
-				break loop
-			}
-
-		case html.StartTagToken:
-			token := tokenizer.Token()
-			if token.Data != "td" {
-				c.logger.Debug("start tag token, not TD, continue loop", zap.Any("token", token.Data))
-				continue
-			}
-
-			for {
-				innerNode := tokenizer.Next()
-				if innerNode == html.ErrorToken {
-					return model.InterestSet{}, tokenizer.Err()
-				}
-
-				if innerNode == html.EndTagToken {
-					data := tokenizer.Token().Data
-					if data == "td" {
-						c.logger.Debug("TD with no useful data, skipping to next TD!", zap.Any("token", data))
-						continue loop
-					}
-				}
-
-				if innerNode != html.TextToken {
+		for i, cell := range row {
+			if term, ok := terms[i]; ok {
+				rate, err := parseNominalRate(cell)
+				if err != nil {
 					continue
 				}
 
-				innerToken := tokenizer.Token()
-				c.logger.Debug("next token is TEXT", zap.Any("token", innerToken.Data))
+				interestSets = append(interestSets, model.InterestSet{
+					Bank:                  danskeBankName,
+					Type:                  model.TypeAverageRate,
+					Term:                  term,
+					NominalRate:           rate,
+					LastCrawledAt:         crawlTime,
+					AverageReferenceMonth: &refMonth,
 
-				if strings.Contains(innerToken.Data, "Premium") {
-					return model.InterestSet{}, ErrNoInterestSetFound // Danske Bank offers multiple "Premium" interest rates, which are not relevant for this crawler
-				}
-
-				term, err := parseTerm(innerToken.Data)
-				c.logger.Debug("extracted term", zap.Any("term", term), zap.Any("error", err))
-				if err == nil {
-					interestSet.Term = term
-					continue loop
-				}
-
-				nominalRate, err := parseNominalRate(innerToken.Data)
-				c.logger.Debug("extracted nominal rate", zap.Any("nominalRate", nominalRate), zap.Any("error", err))
-				if err == nil {
-					interestSet.NominalRate = nominalRate
-					continue loop
-				}
-
-				changedDate, err := parseChangeDate(innerToken.Data, swedishDashedDateRegex)
-				c.logger.Debug("extracted change date", zap.Any("changedDate", changedDate), zap.Any("error", err))
-				if err == nil {
-					interestSet.ChangedOn = &changedDate
-					continue loop
-				}
+					RatioDiscountBoundaries: nil,
+					UnionDiscount:           false,
+					ChangedOn:               nil,
+				})
 			}
 		}
 	}
 
-	if interestSet.Term == "" || interestSet.NominalRate == 0 {
-		c.logger.Debug("no interest set found", zap.Any("interestSet", interestSet), zap.String("term", string(interestSet.Term)))
-		return model.InterestSet{}, ErrNoInterestSetFound
+	return interestSets, nil
+}
+
+func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) (utils.Table, error) {
+	resultRows := [][]string{}
+	for i, row := range table.Rows {
+		// skip empty rows
+		if len(row) == 0 {
+			continue
+		}
+
+		// fix wonky (and inconsistent) Danske Bank table layout:
+		// <tr><td>Augusti 2021</td><td>1,23</td><td>1,44</td><td>1,66</td></tr>
+		// <tr><td>Juli 2021</td></tr>
+		// <tr><td>1,23</td><td>1,44</td><td>1,66</td></tr>
+		if len(row) == 1 {
+			_, err := c.parseReferenceMonth(row[0])
+			if err != nil {
+				// first cell contains no reference month, dunno what to do with this row, skip it
+				continue
+			}
+
+			// If the current row has no values, and only the month in the first cell, then the next row
+			// should contain the values for that month (because Dansek Bank doesn't know how to make html tables).
+			resultRows = append(resultRows, append(row, table.Rows[i+1]...))
+			table.Rows[i+1] = []string{} // clear the next row, so it doesn't get processed again
+			continue
+		}
+
+		resultRows = append(resultRows, row)
 	}
 
-	return interestSet, nil
+	return utils.Table{
+		Header: table.Header,
+		Rows:   resultRows,
+	}, nil
+}
+
+func parseChangeDate(data string) (time.Time, error) {
+	matches := changedDateRegex.FindStringSubmatch(data)
+	if len(matches) != 4 {
+		return time.Time{}, errors2.ErrUnsupportedChangeDate
+	}
+
+	year, err := strconv.Atoi(matches[1])
+	if err != nil || year < 0 {
+		return time.Time{}, fmt.Errorf("failed to parse year: %w", err)
+	}
+
+	month, err := strconv.Atoi(matches[2])
+	if err != nil || month < 1 || month > 12 {
+		return time.Time{}, fmt.Errorf("failed to parse month: %w", err)
+	}
+
+	day, err := strconv.Atoi(matches[3])
+	if err != nil || day < 1 || day > 31 {
+		return time.Time{}, fmt.Errorf("failed to parse day: %w", err)
+	}
+
+	// assume all double-digit year numbers lower than 40 are from the 21st century, otherwise 20th century. This will
+	// ensure that this function works until the year 2039 and assumes we don't get historical data from before 1940
+	// presented in this format.
+	if year < 40 {
+		year += 2000
+	} else {
+		year += 1900
+	}
+
+	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC), nil
+}
+
+// E.g. "Augusti 2021" -> AvgMonth{Month: time.August,   Year: 2021}
+// E.g. "Feb 1955"     -> AvgMonth{Month: time.February, Year: 1955}
+func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, error) {
+	data = strings.ToLower(data)
+	data = strings.TrimSpace(data)
+
+	parts := strings.Fields(data)
+	if len(parts) < 2 {
+		return model.AvgMonth{}, errors2.ErrUnsupportedAvgMonth
+	}
+
+	var month time.Month
+	for swedishMonth, monthObject := range swedishMonthMap {
+		rawMonth := utils.NormalizeSpaces(parts[0])
+		if strings.Contains(rawMonth, swedishMonth) {
+			month = monthObject
+			break
+		}
+	}
+	if month == 0 {
+		return model.AvgMonth{}, fmt.Errorf("failed to parse month: %w", errors2.ErrUnsupportedAvgMonth)
+	}
+
+	yearInt, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return model.AvgMonth{}, fmt.Errorf("failed to parse year: %w", err)
+	}
+	if yearInt < 1940 || yearInt > 2100 {
+		return model.AvgMonth{}, fmt.Errorf("year out of range: %w", errors2.ErrUnsupportedAvgMonth)
+	}
+
+	return model.AvgMonth{
+		Month: month,
+		Year:  uint(yearInt),
+	}, nil
+
+}
+
+func parseNominalRate(data string) (float32, error) {
+	data = utils.NormalizeSpaces(data)
+	data = strings.ReplaceAll(data, ",", ".") // replace Swedish decimal separator with dot
+	data = strings.ReplaceAll(data, " ", "")  // remove spaces
+
+	matches := interestRegex.FindStringSubmatch(data)
+	if len(matches) != 2 {
+		return 0, errors2.ErrUnsupportedInterestRate
+	}
+
+	rate, err := strconv.ParseFloat(matches[1], 32)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse interest rate: %w", err)
+	}
+
+	return float32(rate), nil
 }
