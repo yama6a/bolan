@@ -1,15 +1,16 @@
 package crawler
 
 import (
+	"errors"
 	"fmt"
-	errors2 "github.com/ymakhloufi/bolan-compare/internal/pkg/errors"
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/utils"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
+	"github.com/yama6a/bolan-compare/internal/pkg/utils"
+
+	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +23,7 @@ var (
 	_ SiteCrawler = &DanskeBankCrawler{}
 
 	// YY-MM-DD
-	changedDateRegex = regexp.MustCompile(`^(\d{2})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`)
+	changedDateRegex = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`)
 	interestRegex    = regexp.MustCompile(`^(\d+\.\d+ ?)%?$`)
 
 	swedishMonthMap = map[string]time.Month{
@@ -90,7 +91,7 @@ func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 }
 
 func (c *DanskeBankCrawler) extractListRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHtml, "Bankens aktuella")
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHtml, "Bankens aktuella listräntor")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find table by text 'Bankens aktuella' before table: %w", err)
 	}
@@ -100,8 +101,6 @@ func (c *DanskeBankCrawler) extractListRates(rawHtml string, crawlTime time.Time
 		return nil, fmt.Errorf("failed to parse table: %w", err)
 	}
 
-	utils.PrintTable(table)
-
 	interestSets := []model.InterestSet{}
 	for _, row := range table.Rows {
 		term, err := utils.ParseTerm(row[0])
@@ -110,7 +109,7 @@ func (c *DanskeBankCrawler) extractListRates(rawHtml string, crawlTime time.Time
 			continue
 		}
 
-		changedOn, err := parseChangeDate(row[1])
+		changedOn, err := parseDanskeBankChangeDate(row[1])
 		if err != nil {
 			c.logger.Warn("failed to parse change date", zap.String("date", row[1]), zap.Error(err))
 			continue
@@ -153,14 +152,16 @@ func (c *DanskeBankCrawler) extractAverageRates(rawHtml string, crawlTime time.T
 	table, err = c.sanitizeAvgRows(table)
 
 	// parse header strings to terms
-	// map[columnIdx]model.Term
 	terms := map[int]model.Term{}
 	for i, t := range table.Header {
 		term, err := utils.ParseTerm(t)
 		if err == nil {
 			terms[i] = term
 		} else {
-			c.logger.Info("failed to parse term", zap.String("term", t), zap.Error(err))
+			if errors.Is(err, utils.ErrTermHeader) {
+				continue // skip header
+			}
+			c.logger.Warn("failed to parse term", zap.String("term", t), zap.Error(err))
 		}
 	}
 
@@ -205,7 +206,7 @@ func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) (utils.Table, err
 			continue
 		}
 
-		// fix wonky (and inconsistent) Danske Bank table layout:
+		// fix wonky (and inconsistent) Danske Bank table layout, e.g. row split like this:
 		// <tr><td>Augusti 2021</td><td>1,23</td><td>1,44</td><td>1,66</td></tr>
 		// <tr><td>Juli 2021</td></tr>
 		// <tr><td>1,23</td><td>1,44</td><td>1,66</td></tr>
@@ -232,10 +233,10 @@ func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) (utils.Table, err
 	}, nil
 }
 
-func parseChangeDate(data string) (time.Time, error) {
+func parseDanskeBankChangeDate(data string) (time.Time, error) {
 	matches := changedDateRegex.FindStringSubmatch(data)
 	if len(matches) != 4 {
-		return time.Time{}, errors2.ErrUnsupportedChangeDate
+		return time.Time{}, utils.ErrUnsupportedChangeDate
 	}
 
 	year, err := strconv.Atoi(matches[1])
@@ -273,7 +274,7 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 
 	parts := strings.Fields(data)
 	if len(parts) < 2 {
-		return model.AvgMonth{}, errors2.ErrUnsupportedAvgMonth
+		return model.AvgMonth{}, utils.ErrUnsupportedAvgMonth
 	}
 
 	var month time.Month
@@ -285,7 +286,7 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 		}
 	}
 	if month == 0 {
-		return model.AvgMonth{}, fmt.Errorf("failed to parse month: %w", errors2.ErrUnsupportedAvgMonth)
+		return model.AvgMonth{}, fmt.Errorf("failed to parse month: %w", utils.ErrUnsupportedAvgMonth)
 	}
 
 	yearInt, err := strconv.Atoi(parts[1])
@@ -293,7 +294,7 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 		return model.AvgMonth{}, fmt.Errorf("failed to parse year: %w", err)
 	}
 	if yearInt < 1940 || yearInt > 2100 {
-		return model.AvgMonth{}, fmt.Errorf("year out of range: %w", errors2.ErrUnsupportedAvgMonth)
+		return model.AvgMonth{}, fmt.Errorf("year out of range: %w", utils.ErrUnsupportedAvgMonth)
 	}
 
 	return model.AvgMonth{
@@ -310,7 +311,7 @@ func parseNominalRate(data string) (float32, error) {
 
 	matches := interestRegex.FindStringSubmatch(data)
 	if len(matches) != 2 {
-		return 0, errors2.ErrUnsupportedInterestRate
+		return 0, utils.ErrUnsupportedInterestRate
 	}
 
 	rate, err := strconv.ParseFloat(matches[1], 32)

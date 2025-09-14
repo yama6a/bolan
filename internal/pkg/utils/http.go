@@ -65,8 +65,6 @@ func FetchRawContentFromUrl(url string, decoder Decoder, headers map[string]stri
 
 // randomUserAgent generates a random User-Agent string for different browsers and platforms.
 func randomUserAgent() string {
-	rand.Seed(time.Now().UnixNano())
-
 	browsers := []string{"Chrome", "Firefox", "Safari", "Edge"}
 	platforms := []string{
 		"Windows NT 10.0; Win64; x64",
@@ -85,12 +83,12 @@ func randomUserAgent() string {
 	patchVersion := rand.Intn(1000)    // Patch version
 
 	// Generate random OS versions
-	macMajor := rand.Intn(6) + 10      // macOS version 10-15
-	macMinor := rand.Intn(10)          // Minor version for macOS
-	macPatch := rand.Intn(10)          // Patch version for macOS
-	iosMajor := rand.Intn(3) + 13      // iOS version 13-15
-	iosMinor := rand.Intn(5)           // Minor version for iOS
-	androidVersion := rand.Intn(6) + 7 // Android version 7-12
+	macMajor := rand.Intn(3) + 13       // macOS version 13-15
+	macMinor := rand.Intn(10)           // Minor version for macOS
+	macPatch := rand.Intn(10)           // Patch version for macOS
+	iosMajor := rand.Intn(4) + 15       // iOS version 15-18 // Todo: update to v26 once Apple switches to new versioning scheme: https://en.wikipedia.org/wiki/IOS_26
+	iosMinor := rand.Intn(5)            // Minor version for iOS
+	androidVersion := rand.Intn(4) + 14 // Android version 14-17
 
 	// Fill in the platform template with random OS versions
 	var platform string

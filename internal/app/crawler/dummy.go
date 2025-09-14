@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
+	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
 )
 

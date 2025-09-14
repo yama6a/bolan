@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/ymakhloufi/bolan-compare/internal/app/crawler"
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/store"
+	"github.com/yama6a/bolan-compare/internal/app/crawler"
+	"github.com/yama6a/bolan-compare/internal/pkg/store"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 
-	errors2 "github.com/ymakhloufi/bolan-compare/internal/pkg/errors"
 	"golang.org/x/net/html"
 )
 
@@ -28,7 +27,7 @@ func FindTokenizedTableByTextBeforeTable(rawHtml, stringToFind string) (*html.To
 					switch node {
 					case html.ErrorToken:
 						if tokenizer.Err() == io.EOF {
-							return nil, fmt.Errorf("failed finding section on Danske List Rates website, EOF: %w", errors2.ErrNoInterestSetFound)
+							return nil, fmt.Errorf("failed finding section on Danske List Rates website, EOF: %w", ErrNoInterestSetFound)
 						}
 						return nil, tokenizer.Err()
 					case html.StartTagToken:
@@ -44,7 +43,7 @@ func FindTokenizedTableByTextBeforeTable(rawHtml, stringToFind string) (*html.To
 		}
 	}
 	if tokenizer.Err() == io.EOF {
-		return nil, fmt.Errorf("failed finding section on Danske Bank website, EOF: %w", errors2.ErrNoInterestSetFound)
+		return nil, fmt.Errorf("failed finding section on Danske Bank website, EOF: %w", ErrNoInterestSetFound)
 	}
 	return nil, tokenizer.Err()
 }
