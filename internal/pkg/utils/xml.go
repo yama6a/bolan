@@ -9,6 +9,11 @@ import (
 	"golang.org/x/net/html"
 )
 
+var (
+	errIsNoTrTag  = errors.New("not a tr tag")
+	ErrIsFirstRow = errors.New("first row")
+)
+
 // Define the Table struct
 type Table struct {
 	Header []string
@@ -48,7 +53,8 @@ func FindTokenizedTableByTextBeforeTable(rawHtml, stringToFind string) (*html.To
 	return nil, tokenizer.Err()
 }
 
-func PrintTable(table Table) {
+// PrintTable prints the Table to standard output for debugging purposes
+func PrintTable(table Table) { //nolint: unused // useful for debugging
 	for _, string := range table.Header {
 		fmt.Print(string, "|")
 	}
@@ -64,49 +70,75 @@ func PrintTable(table Table) {
 // ParseTable parses the Table starting from the current position of the tokenizer
 func ParseTable(tokenizer *html.Tokenizer) (Table, error) {
 	var t Table
-	firstRow := true
+	isFirstRow := true
 
 	for {
 		tt := tokenizer.Next()
 		switch tt {
 		case html.ErrorToken:
-			err := tokenizer.Err()
-			if err == io.EOF {
-				return t, nil
-			}
-			return t, err
+			return t, handleErrToken(tokenizer.Err())
 
 		case html.StartTagToken:
-			tn, _ := tokenizer.TagName()
-			tagName := string(tn)
-			if tagName != "tr" {
-				continue
-			}
-
-			row, err := parseTableRow(tokenizer)
+			var err error
+			t, err = handleStartTagInTable(tokenizer, t, isFirstRow)
 			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return t, nil
+				if errors.Is(err, ErrIsFirstRow) {
+					isFirstRow = false
+					continue
+				}
+				if errors.Is(err, errIsNoTrTag) {
+					continue
 				}
 				return t, err
 			}
-			if firstRow {
-				t.Header = row
-				firstRow = false
-			} else {
-				t.Rows = append(t.Rows, row)
-			}
 
 		case html.EndTagToken:
-			tn, _ := tokenizer.TagName()
-			tagName := string(tn)
-			if tagName == "table" {
+			if isClosingTableTag(tokenizer) {
 				return t, nil
 			}
+
 		default:
 			continue
 		}
 	}
+}
+
+func isClosingTableTag(tokenizer *html.Tokenizer) bool {
+	tn, _ := tokenizer.TagName()
+	tagName := string(tn)
+	return tagName == "table"
+}
+
+func handleStartTagInTable(tokenizer *html.Tokenizer, t Table, isFirstRow bool) (Table, error) {
+	tn, _ := tokenizer.TagName()
+	tagName := string(tn)
+	if tagName != "tr" {
+		return t, errIsNoTrTag
+	}
+
+	row, err := parseTableRow(tokenizer)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return t, nil
+		}
+		return t, err
+	}
+
+	if isFirstRow {
+		t.Header = row
+		return t, ErrIsFirstRow
+	} else {
+		t.Rows = append(t.Rows, row)
+	}
+
+	return t, nil
+}
+
+func handleErrToken(err error) error {
+	if err == io.EOF {
+		return nil // done, no error
+	}
+	return err
 }
 
 // Helper function to parse a Table row

@@ -233,6 +233,7 @@ func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) (utils.Table, err
 	}, nil
 }
 
+//nolint:cyclop // complexity is ok for this simple function
 func parseDanskeBankChangeDate(data string) (time.Time, error) {
 	matches := changedDateRegex.FindStringSubmatch(data)
 	if len(matches) != 4 {
@@ -257,9 +258,10 @@ func parseDanskeBankChangeDate(data string) (time.Time, error) {
 	// assume all double-digit year numbers lower than 40 are from the 21st century, otherwise 20th century. This will
 	// ensure that this function works until the year 2039 and assumes we don't get historical data from before 1940
 	// presented in this format.
-	if year < 40 {
+	switch true {
+	case year < 40:
 		year += 2000
-	} else {
+	case year < 100:
 		year += 1900
 	}
 

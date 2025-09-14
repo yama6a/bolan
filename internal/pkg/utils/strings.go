@@ -28,6 +28,7 @@ func NormalizeSpaces(str string) string {
 	return str
 }
 
+// nolint: cyclop // it's just one big switch statement, still readable
 func ParseTerm(data string) (model.Term, error) {
 	str := NormalizeSpaces(data)
 	str = strings.ToLower(str)
