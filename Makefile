@@ -17,8 +17,12 @@ vet: assert_go_installed ## Run go vet.
 test: assert_go_installed ## Run tests.
 	go test -v ./...
 
+.PHONY: vuln
+vuln: assert_govulncheck_installed ## Run govulncheck.
+	govulncheck ./...
+
 .PHONE: ci
-ci: lint vet test ## Run all checks.
+ci: lint vet test vuln ## Run aci ll checks.
 
 .PHONY: fumpt
 fumpt: assert_gofumpt_installed ## Run gofumpt to fix all formatting issues in project.
@@ -43,6 +47,12 @@ install: assert_go_installed ## Install binary locally.
 
 
 ##@ Assertions
+.PHONY: assert_govulncheck_installed
+assert_govulncheck_installed: ## Assert govulncheck is installed.
+	@if ! command -v govulncheck &> /dev/null; then \
+		echo "go vulncheck is not installed; you need to install it in order to run this command"; \
+		exit 1; \
+	fi
 .PHONY: assert_go_installed
 assert_go_installed: ## Assert go is installed.
 	@if ! command -v go &> /dev/null; then \
