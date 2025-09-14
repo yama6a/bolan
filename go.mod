@@ -1,11 +1,11 @@
 module github.com/yama6a/bolan-compare
 
-go 1.23.2
+go 1.25
 
 require (
 	github.com/jackc/pgx/v4 v4.18.3
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.30.0
+	golang.org/x/net v0.44.0
 )
 
 require (
@@ -18,6 +18,6 @@ require (
 	github.com/jackc/pgtype v1.14.4 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.28.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 )
