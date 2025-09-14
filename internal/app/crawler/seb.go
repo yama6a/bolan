@@ -4,30 +4,30 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	errors2 "github.com/ymakhloufi/bolan-compare/internal/pkg/errors"
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/utils"
-	"go.uber.org/zap"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yama6a/bolan-compare/internal/pkg/model"
+	"github.com/yama6a/bolan-compare/internal/pkg/utils"
+	"go.uber.org/zap"
 )
 
 const (
 	sebBankName              model.Bank = "SEB"
-	sebAvgCurrentHtmlUrl     string     = "https://pricing-portal-web-public.clouda.sebgroup.com/mortgage/averageratecurrent"
+	sebAvgCurrentHtmlUrl     string     = "https://pricing-portal-web-public.clouda.sebgroup.com/mortgage/averageratehistoric"
 	sebApiKeyJsFileUrlPrefix string     = "https://pricing-portal-web-public.clouda.sebgroup.com/"
 	sebListRateUrl           string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/listrate/current"
-	sebAverageRatesUrl       string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/averagerate/current"
+	sebAverageRatesUrl       string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/averagerate/historic"
 )
 
 var (
 	_                      SiteCrawler = &SebBankCrawler{}
 	jsFileRegex                        = regexp.MustCompile(`main\.[a-zA-Z0-9]+\.js`)
 	apiKeyRegex                        = regexp.MustCompile(`x-api-key":"(.*?)"`)
-	isoDateRegex                       = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`) // YYYY-MM-DD
-	yearMonthReferenceDate             = regexp.MustCompile(`^(\d{2})(0[1-9]|1[0-2])$`)                            // YYMM
+	isoDateRegex                       = regexp.MustCompile(`^((\d{4})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])).*$`) // YYYY-MM-DD
+	yearMonthReferenceDate             = regexp.MustCompile(`^(\d{2})(0[1-9]|1[0-2])$`)                                // YYMM
 )
 
 type SebBankCrawler struct {
@@ -115,7 +115,7 @@ func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]m
 			continue
 		}
 
-		changeDate, err := parseChangeDate2(rate.StartDate, isoDateRegex)
+		changeDate, err := parseSEBChangeDate(rate.StartDate, isoDateRegex)
 		if err != nil {
 			c.logger.Warn("failed parsing SEB list rate change date", zap.Any("rateObj", rate), zap.Error(err))
 			continue
@@ -160,34 +160,44 @@ func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) (
 		return nil, fmt.Errorf("failed reading SEB average rates API: %w", err)
 	}
 
-	var avgRates sebAverageRatesResponse
+	var avgRates []sebAverageRatesResponse
 	if err := json.Unmarshal([]byte(rawJson), &avgRates); err != nil {
 		c.logger.Error("failed unmarshalling SEB average rates", zap.Error(err), zap.String("rawJson", rawJson))
 		return nil, fmt.Errorf("failed unmarshalling SEB average rates: %w", err)
 	}
 
-	period, err := parseReferenceMonth(avgRates.Period, yearMonthReferenceDate)
-
 	interestSets := []model.InterestSet{}
-	for termStr, rate := range avgRates.Rates {
-		term, err := utils.ParseTerm(termStr)
+	for _, rate := range avgRates {
+		period, err := parseReferenceMonth(rate.Period, yearMonthReferenceDate)
 		if err != nil {
-			c.logger.Warn("SEB average rate term not supported - skipping", zap.String("term", termStr), zap.Error(err))
+			c.logger.Warn("failed parsing SEB average rate reference month", zap.Uint("period", rate.Period), zap.Error(err))
 			continue
 		}
 
-		interestSets = append(interestSets, model.InterestSet{
-			AverageReferenceMonth: &period,
-			Bank:                  sebBankName,
-			Type:                  model.TypeAverageRate,
-			Term:                  term,
-			NominalRate:           rate,
-			LastCrawledAt:         crawlTime,
+		for termStr, rate := range rate.Rates {
+			term, err := utils.ParseTerm(termStr)
+			if err != nil {
+				if errors.Is(err, utils.ErrTermHeader) {
+					continue // skip header
+				}
+				c.logger.Warn("SEB average rate term not supported - skipping", zap.String("term", termStr), zap.Error(err))
+				continue
+			}
 
-			RatioDiscountBoundaries: nil,
-			UnionDiscount:           false,
-			ChangedOn:               nil,
-		})
+			interestSets = append(interestSets, model.InterestSet{
+				AverageReferenceMonth: &period,
+				Bank:                  sebBankName,
+				Type:                  model.TypeAverageRate,
+				Term:                  term,
+				NominalRate:           rate,
+				LastCrawledAt:         crawlTime,
+
+				RatioDiscountBoundaries: nil,
+				UnionDiscount:           false,
+				ChangedOn:               nil,
+			})
+		}
+
 	}
 
 	return interestSets, nil
@@ -196,7 +206,7 @@ func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) (
 func parseReferenceMonth(data uint, regex *regexp.Regexp) (model.AvgMonth, error) {
 	matches := regex.FindStringSubmatch(fmt.Sprintf("%d", data))
 	if len(matches) != 3 {
-		return model.AvgMonth{}, errors2.ErrUnsupportedAvgMonth
+		return model.AvgMonth{}, utils.ErrUnsupportedAvgMonth
 	}
 
 	year, err := strconv.Atoi(matches[1])
@@ -224,15 +234,15 @@ func parseReferenceMonth(data uint, regex *regexp.Regexp) (model.AvgMonth, error
 	}, nil
 }
 
-func parseChangeDate2(str string, regex *regexp.Regexp) (time.Time, error) {
+func parseSEBChangeDate(str string, regex *regexp.Regexp) (time.Time, error) {
 	str = utils.NormalizeSpaces(str)
 
 	matches := regex.FindStringSubmatch(str)
-	if len(matches) != 4 {
-		return time.Time{}, errors2.ErrUnsupportedChangeDate
+	if len(matches) != 5 {
+		return time.Time{}, utils.ErrUnsupportedChangeDate
 	}
 
-	date, err := time.Parse("2006-01-02", matches[0])
+	date, err := time.Parse("2006-01-02", matches[1])
 	if err != nil {
 		return time.Time{}, fmt.Errorf("failed to parse change date: %w", err)
 	}

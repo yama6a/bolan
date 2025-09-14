@@ -1,4 +1,4 @@
-module github.com/ymakhloufi/bolan-compare
+module github.com/yama6a/bolan-compare
 
 go 1.23.2
 

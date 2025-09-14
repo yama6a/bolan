@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/errors"
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
 	"strings"
+
+	"github.com/yama6a/bolan-compare/internal/pkg/model"
 )
 
 func NormalizeSpaces(str string) string {
@@ -34,6 +34,8 @@ func ParseTerm(data string) (model.Term, error) {
 	str = strings.ReplaceAll(str, " ", "")
 
 	switch {
+	case strings.Contains(str, "Genomsnittlig"), strings.Contains(str, "Bindningstid"), str == "tot":
+		return "", ErrTermHeader
 	case strings.Contains(str, "3mån"), strings.Contains(str, "3mo"):
 		return model.Term3months, nil
 	case strings.Contains(str, "1år"), strings.Contains(str, "1yr"):
@@ -59,5 +61,5 @@ func ParseTerm(data string) (model.Term, error) {
 
 	}
 
-	return "", errors.ErrUnsupportedTerm
+	return "", ErrUnsupportedTerm
 }

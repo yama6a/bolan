@@ -3,7 +3,7 @@ package crawler
 import (
 	"sync"
 
-	"github.com/ymakhloufi/bolan-compare/internal/pkg/model"
+	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
 )
 
@@ -51,6 +51,19 @@ func (s *Service) Crawl() {
 	for _, is := range s.store.GetInterestSets() {
 		s.logger.Info("interestSet", zap.Any("interestSet", is))
 	}
+
+	interestSets := s.store.GetInterestSets()
+	result := make(map[model.Bank]map[model.Type]uint)
+	for _, is := range interestSets {
+		if _, ok := result[is.Bank]; !ok {
+			result[is.Bank] = make(map[model.Type]uint)
+		}
+		if _, ok := result[is.Bank][is.Type]; !ok {
+			result[is.Bank][is.Type] = 0
+		}
+		result[is.Bank][is.Type]++
+	}
+	s.logger.Info("Found interesetSets", zap.Any("summary", result))
 
 	close(objChan)
 }
