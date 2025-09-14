@@ -9,11 +9,11 @@ import (
 
 type Store interface {
 	UpsertInterestSet(set model.InterestSet) error
-	GetInterestSets() []model.InterestSet
+	GetInterestSets() ([]model.InterestSet, error)
 }
 
 type SiteCrawler interface {
-	Crawl(chan<- model.InterestSet)
+	Crawl(result chan<- model.InterestSet)
 }
 
 type Service struct {
@@ -48,11 +48,15 @@ func (s *Service) Crawl() {
 	s.logger.Info("all crawlers finished, closing channels")
 
 	s.logger.Info("Found interestSets:")
-	for _, is := range s.store.GetInterestSets() {
+	interestSets, err := s.store.GetInterestSets()
+	if err != nil {
+		s.logger.Error("failed to get interestSets", zap.Error(err))
+		return
+	}
+	for _, is := range interestSets {
 		s.logger.Info("interestSet", zap.Any("interestSet", is))
 	}
 
-	interestSets := s.store.GetInterestSets()
 	result := make(map[model.Bank]map[model.Type]uint)
 	for _, is := range interestSets {
 		if _, ok := result[is.Bank]; !ok {

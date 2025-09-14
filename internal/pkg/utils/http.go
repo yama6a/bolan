@@ -1,6 +1,10 @@
+// #nosec G404 // not used in security context, no strong randomness needed
+//
+//nolint:revive,nolintlint // I like this package name, leave me alone
 package utils
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -10,26 +14,29 @@ import (
 
 var (
 	// Unused but keep for now. Banks have ancient systems, SEB used this encoding previously, which was painful to fix.
-	DecoderWindows1252 Decoder = func(runes []byte) (str string) {
+	DecoderWindows1252 Decoder = func(runes []byte) (str string) { //nolint: gochecknoglobals
 		for _, r := range runes {
 			str += string(r)
 		}
 		return
 	}
-	DecoderUtf8 Decoder = func(runes []byte) string {
+	DecoderUtf8 Decoder = func(runes []byte) string { //nolint: gochecknoglobals
 		return string(runes)
 	}
 )
 
 type Decoder func([]byte) string
 
-func FetchRawContentFromUrl(url string, decoder Decoder, headers map[string]string) (string, error) {
+func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]string) (string, error) {
 	client := http.Client{Timeout: 30 * time.Second}
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -51,13 +58,13 @@ func FetchRawContentFromUrl(url string, decoder Decoder, headers map[string]stri
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to perform request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	return decoder(body), nil
@@ -78,7 +85,7 @@ func randomUserAgent() string {
 	platformTemplate := platforms[rand.Intn(len(platforms))]
 
 	// Generate random version numbers
-	majorVersion := rand.Intn(20) + 80 // Major version for browser (e.g., Chrome 80-99)
+	majorVersion := rand.Intn(20) + 80 // Major version for browser (e.g., Chrome 80-99) //
 	minorVersion := rand.Intn(10)      // Minor version
 	patchVersion := rand.Intn(1000)    // Patch version
 

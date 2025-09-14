@@ -23,9 +23,11 @@ const (
 	TypeUnionDiscounted Type = "unionDiscountedRate"
 )
 
-type Term string
-type Type string
-type Bank string
+type (
+	Term string
+	Type string
+	Bank string
+)
 
 type RatioDiscountBoundary struct {
 	MinRatio float32

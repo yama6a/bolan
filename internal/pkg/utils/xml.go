@@ -1,3 +1,4 @@
+//nolint:revive,nolintlint // I like this package name, leave me alone
 package utils
 
 import (
@@ -9,45 +10,50 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Define the Table struct
+const (
+	TagTable = "table"
+	TagTr    = "tr"
+	TagTh    = "th"
+	TagTd    = "td"
+)
+
 type Table struct {
 	Header []string
 	Rows   [][]string
 }
 
-// FindTokenizedTableByTextBeforeTable returns the tokenizer for a table which occurs after a given text in an xml document
-func FindTokenizedTableByTextBeforeTable(rawHtml, stringToFind string) (*html.Tokenizer, error) {
-	tokenizer := html.NewTokenizer(strings.NewReader(rawHtml))
+// FindTokenizedTableByTextBeforeTable returns the tokenizer for a table which occurs after a given text in an xml document.
+func FindTokenizedTableByTextBeforeTable(rawHTML, stringToFind string) (*html.Tokenizer, error) {
+	tokenizer := html.NewTokenizer(strings.NewReader(rawHTML))
 	for node := tokenizer.Next(); node != html.ErrorToken; node = tokenizer.Next() {
-		if node == html.TextToken {
-			tkn := tokenizer.Token()
-			if strings.Contains(tkn.Data, stringToFind) {
-				for {
-					node = tokenizer.Next()
-					switch node {
-					case html.ErrorToken:
-						if tokenizer.Err() == io.EOF {
-							return nil, fmt.Errorf("failed finding section on Danske List Rates website, EOF: %w", ErrNoInterestSetFound)
-						}
-						return nil, tokenizer.Err()
-					case html.StartTagToken:
-						tkn := tokenizer.Token()
-						if tkn.Data == "table" {
-							return tokenizer, nil
-						}
-					default:
-						continue
-					}
+		if node != html.TextToken {
+			continue
+		}
+
+		tkn := tokenizer.Token()
+		if !strings.Contains(tkn.Data, stringToFind) {
+			continue
+		}
+
+		for {
+			node = tokenizer.Next()
+			switch node { //nolint: exhaustive // we only care about start tags and errors
+			case html.ErrorToken:
+				return nil, fmt.Errorf("failed to find table after text %q: %w", stringToFind, tokenizer.Err())
+			case html.StartTagToken:
+				tkn := tokenizer.Token()
+				if tkn.Data == TagTable {
+					return tokenizer, nil
 				}
+			default:
+				continue
 			}
 		}
 	}
-	if tokenizer.Err() == io.EOF {
-		return nil, fmt.Errorf("failed finding section on Danske Bank website, EOF: %w", ErrNoInterestSetFound)
-	}
-	return nil, tokenizer.Err()
+	return nil, fmt.Errorf("failed to find text %q before table: %w", stringToFind, tokenizer.Err())
 }
 
+// PrintTable prints the Table to standard output for debugging purposes.
 func PrintTable(table Table) {
 	for _, string := range table.Header {
 		fmt.Print(string, "|")
@@ -61,68 +67,80 @@ func PrintTable(table Table) {
 	}
 }
 
-// ParseTable parses the Table starting from the current position of the tokenizer
+// ParseTable parses the Table starting from the current position of the tokenizer.
 func ParseTable(tokenizer *html.Tokenizer) (Table, error) {
 	var t Table
-	firstRow := true
 
 	for {
 		tt := tokenizer.Next()
-		switch tt {
+		switch tt { //nolint: exhaustive // we only care about start tags, end tags, and errors
 		case html.ErrorToken:
-			err := tokenizer.Err()
-			if err == io.EOF {
-				return t, nil
-			}
-			return t, err
+			return t, handleErrToken(tokenizer.Err())
 
 		case html.StartTagToken:
-			tn, _ := tokenizer.TagName()
-			tagName := string(tn)
-			if tagName != "tr" {
-				continue
+			var err error
+			row, err := extractTableRow(tokenizer)
+			if len(row) > 0 { // even with an error, there might be a valid row
+				addRowToTable(&t, row)
 			}
-
-			row, err := parseTableRow(tokenizer)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return t, nil
-				}
-				return t, err
-			}
-			if firstRow {
-				t.Header = row
-				firstRow = false
-			} else {
-				t.Rows = append(t.Rows, row)
+			if errors.Is(err, io.EOF) {
+				return t, nil // reached end of table or document
 			}
 
 		case html.EndTagToken:
-			tn, _ := tokenizer.TagName()
-			tagName := string(tn)
-			if tagName == "table" {
+			if isClosingTableTag(tokenizer) {
 				return t, nil
 			}
+
 		default:
 			continue
 		}
 	}
 }
 
-// Helper function to parse a Table row
+func addRowToTable(t *Table, row []string) {
+	if t.Header == nil {
+		t.Header = row
+	} else {
+		t.Rows = append(t.Rows, row)
+	}
+}
+
+func isClosingTableTag(tokenizer *html.Tokenizer) bool {
+	tn, _ := tokenizer.TagName()
+	tagName := string(tn)
+	return tagName == TagTable
+}
+
+func extractTableRow(tokenizer *html.Tokenizer) ([]string, error) {
+	tn, _ := tokenizer.TagName()
+	tagName := string(tn)
+	if tagName != TagTr {
+		return nil, nil
+	}
+
+	return parseTableRow(tokenizer)
+}
+
+func handleErrToken(err error) error {
+	if errors.Is(err, io.EOF) {
+		return nil // done, no error
+	}
+	return err
+}
+
+// Helper function to parse a Table row.
 func parseTableRow(tokenizer *html.Tokenizer) ([]string, error) {
 	var row []string
 
 	for {
 		tt := tokenizer.Next()
-		switch tt {
+		switch tt { //nolint: exhaustive // we only care about start tags, end tags, and errors
 		case html.ErrorToken:
-			return row, tokenizer.Err()
+			return row, handleErrToken(tokenizer.Err())
 
 		case html.StartTagToken:
-			tn, _ := tokenizer.TagName()
-			tagName := string(tn)
-			if tagName != "th" && tagName != "td" {
+			if !isTableCell(tokenizer) {
 				continue
 			}
 
@@ -135,10 +153,10 @@ func parseTableRow(tokenizer *html.Tokenizer) ([]string, error) {
 		case html.EndTagToken:
 			tn, _ := tokenizer.TagName()
 			tagName := string(tn)
-			if tagName == "tr" {
+			if tagName == TagTr {
 				return row, nil
 			}
-			if tagName == "table" {
+			if tagName == TagTable {
 				return row, io.EOF
 			}
 		default:
@@ -147,28 +165,34 @@ func parseTableRow(tokenizer *html.Tokenizer) ([]string, error) {
 	}
 }
 
-// Function to extract text content from within a tag
+func isTableCell(tokenizer *html.Tokenizer) bool {
+	tn, _ := tokenizer.TagName()
+	tagName := string(tn)
+	return tagName == TagTh || tagName == TagTd
+}
+
+// Function to extract text content from within a tag.
 func extractTextFromTd(tokenizer *html.Tokenizer) (string, error) {
 	var sb strings.Builder
 	var err error
 loop:
 	for {
 		tt := tokenizer.Next()
-		switch tt {
+		switch tt { //nolint: exhaustive // we only care about text tokens, end tags, and errors
 		case html.ErrorToken:
 			err = tokenizer.Err()
 			break loop
 
 		case html.TextToken:
-			sb.WriteString(string(tokenizer.Text()))
+			sb.Write(tokenizer.Text())
 
 		case html.EndTagToken:
 			tn, _ := tokenizer.TagName()
 			tag := string(tn)
-			if tag == "th" || tag == "td" {
+			if tag == TagTd || tag == TagTh || tag == TagTr {
 				break loop
 			}
-			if tag == "table" {
+			if tag == TagTable {
 				err = io.EOF
 				break loop
 			}
