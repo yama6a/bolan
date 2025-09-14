@@ -15,7 +15,7 @@ func main() {
 	noErr(err)
 
 	crawlers := []crawler.SiteCrawler{
-		//crawler.NewDummyCrawler(logger.Named("DummyCrawler")),
+		// crawler.NewDummyCrawler(logger.Named("DummyCrawler")),
 		crawler.NewDanskeBankCrawler(logger.Named("danske-bank-crawler")),
 		crawler.NewSebBankCrawler(logger.Named("seb-crawler")),
 	}

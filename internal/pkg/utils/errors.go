@@ -1,3 +1,4 @@
+//nolint:revive,nolintlint // I like this package name, leave me alone
 package utils
 
 import (

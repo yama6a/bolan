@@ -13,7 +13,7 @@ type Store interface {
 }
 
 type SiteCrawler interface {
-	Crawl(chan<- model.InterestSet)
+	Crawl(result chan<- model.InterestSet)
 }
 
 type Service struct {

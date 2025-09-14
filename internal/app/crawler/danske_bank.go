@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	danskeUrl                 = "https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolanerantor"
+	danskeURL                 = "https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolanerantor"
 	danskeBankName model.Bank = "Danske Bank"
 )
 
@@ -26,7 +26,7 @@ var (
 	changedDateRegex = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`)
 	interestRegex    = regexp.MustCompile(`^(\d+\.\d+ ?)%?$`)
 
-	swedishMonthMap = map[string]time.Month{
+	swedishMonthMap = map[string]time.Month{ //nolint: gochecknoglobals
 		"januari":   time.January,
 		"februari":  time.February,
 		"mars":      time.March,
@@ -65,20 +65,20 @@ func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 
 	crawlTime := time.Now().UTC()
-	rawHtml, err := utils.FetchRawContentFromUrl(danskeUrl, utils.DecoderUtf8, nil)
+	rawHTML, err := utils.FetchRawContentFromURL(danskeURL, utils.DecoderUtf8, nil)
 	if err != nil {
 		c.logger.Error("failed reading Danske website for ListRates", zap.Error(err))
 		return
 	}
 
-	listInterestSets, err := c.extractListRates(rawHtml, crawlTime)
+	listInterestSets, err := c.extractListRates(rawHTML, crawlTime)
 	if err != nil {
 		c.logger.Error("failed parsing Danske List Rates website", zap.Error(err))
 	} else {
 		interestSets = append(interestSets, listInterestSets...)
 	}
 
-	avgInterest, err := c.extractAverageRates(rawHtml, crawlTime)
+	avgInterest, err := c.extractAverageRates(rawHTML, crawlTime)
 	if err != nil {
 		c.logger.Error("failed parsing Danske Avg Rates website", zap.Error(err))
 	} else {
@@ -90,8 +90,8 @@ func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	}
 }
 
-func (c *DanskeBankCrawler) extractListRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHtml, "Bankens aktuella listräntor")
+func (c *DanskeBankCrawler) extractListRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Bankens aktuella listräntor")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find table by text 'Bankens aktuella' before table: %w", err)
 	}
@@ -138,8 +138,8 @@ func (c *DanskeBankCrawler) extractListRates(rawHtml string, crawlTime time.Time
 	return interestSets, nil
 }
 
-func (c *DanskeBankCrawler) extractAverageRates(rawHtml string, crawlTime time.Time) ([]model.InterestSet, error) {
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHtml, "Genomsnittlig historisk")
+func (c *DanskeBankCrawler) extractAverageRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Genomsnittlig historisk")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find table by text 'Genomsnittlig historisk' before table: %w", err)
 	}
@@ -149,21 +149,10 @@ func (c *DanskeBankCrawler) extractAverageRates(rawHtml string, crawlTime time.T
 		return nil, fmt.Errorf("failed to parse table: %w", err)
 	}
 
-	table, err = c.sanitizeAvgRows(table)
+	table = c.sanitizeAvgRows(table)
 
 	// parse header strings to terms
-	terms := map[int]model.Term{}
-	for i, t := range table.Header {
-		term, err := utils.ParseTerm(t)
-		if err == nil {
-			terms[i] = term
-		} else {
-			if errors.Is(err, utils.ErrTermHeader) {
-				continue // skip header
-			}
-			c.logger.Warn("failed to parse term", zap.String("term", t), zap.Error(err))
-		}
-	}
+	terms := c.extractTerms(table)
 
 	interestSets := []model.InterestSet{}
 	for _, row := range table.Rows {
@@ -173,32 +162,51 @@ func (c *DanskeBankCrawler) extractAverageRates(rawHtml string, crawlTime time.T
 		}
 
 		for i, cell := range row {
-			if term, ok := terms[i]; ok {
-				rate, err := parseNominalRate(cell)
-				if err != nil {
-					continue
-				}
-
-				interestSets = append(interestSets, model.InterestSet{
-					Bank:                  danskeBankName,
-					Type:                  model.TypeAverageRate,
-					Term:                  term,
-					NominalRate:           rate,
-					LastCrawledAt:         crawlTime,
-					AverageReferenceMonth: &refMonth,
-
-					RatioDiscountBoundaries: nil,
-					UnionDiscount:           false,
-					ChangedOn:               nil,
-				})
+			rate, err := parseNominalRate(cell)
+			if err != nil {
+				continue
 			}
+
+			term, ok := terms[i]
+			if !ok {
+				continue // skip non-term columns
+			}
+
+			interestSets = append(interestSets, model.InterestSet{
+				Bank:                  danskeBankName,
+				Type:                  model.TypeAverageRate,
+				Term:                  term,
+				NominalRate:           rate,
+				LastCrawledAt:         crawlTime,
+				AverageReferenceMonth: &refMonth,
+
+				RatioDiscountBoundaries: nil,
+				UnionDiscount:           false,
+				ChangedOn:               nil,
+			})
 		}
 	}
 
 	return interestSets, nil
 }
 
-func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) (utils.Table, error) {
+func (c *DanskeBankCrawler) extractTerms(table utils.Table) map[int]model.Term {
+	terms := map[int]model.Term{}
+	for i, t := range table.Header {
+		term, err := utils.ParseTerm(t)
+		if err == nil {
+			terms[i] = term
+		} else {
+			if errors.Is(err, utils.ErrTermHeader) {
+				continue // skip expected headers like "Bindningstid"
+			}
+			c.logger.Warn("failed to parse term", zap.String("term", t), zap.Error(err))
+		}
+	}
+	return terms
+}
+
+func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) utils.Table {
 	resultRows := [][]string{}
 	for i, row := range table.Rows {
 		// skip empty rows
@@ -230,7 +238,7 @@ func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) (utils.Table, err
 	return utils.Table{
 		Header: table.Header,
 		Rows:   resultRows,
-	}, nil
+	}
 }
 
 //nolint:cyclop // complexity is ok for this simple function
@@ -258,7 +266,7 @@ func parseDanskeBankChangeDate(data string) (time.Time, error) {
 	// assume all double-digit year numbers lower than 40 are from the 21st century, otherwise 20th century. This will
 	// ensure that this function works until the year 2039 and assumes we don't get historical data from before 1940
 	// presented in this format.
-	switch true {
+	switch {
 	case year < 40:
 		year += 2000
 	case year < 100:
@@ -303,7 +311,6 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 		Month: month,
 		Year:  uint(yearInt),
 	}, nil
-
 }
 
 func parseNominalRate(data string) (float32, error) {

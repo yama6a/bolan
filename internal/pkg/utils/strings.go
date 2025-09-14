@@ -1,3 +1,4 @@
+//nolint:revive,nolintlint // I like this package name, leave me alone
 package utils
 
 import (
@@ -59,7 +60,6 @@ func ParseTerm(data string) (model.Term, error) {
 		return model.Term9years, nil
 	case strings.Contains(str, "10år"), strings.Contains(str, "10yr"):
 		return model.Term10years, nil
-
 	}
 
 	return "", ErrUnsupportedTerm

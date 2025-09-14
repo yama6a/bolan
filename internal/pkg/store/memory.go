@@ -18,24 +18,30 @@ func NewMemoryStore(_ *pgxpool.Pool, logger *zap.Logger) *MemoryStore {
 	}
 }
 
+func alreadyExists(a model.InterestSet, b model.InterestSet) bool {
+	if a.Bank != b.Bank || a.Type != b.Type || a.Term != b.Term {
+		return false
+	}
+
+	if a.Type == model.TypeAverageRate {
+		if a.AverageReferenceMonth == nil || b.AverageReferenceMonth == nil {
+			return false
+		}
+
+		if a.AverageReferenceMonth.Month != b.AverageReferenceMonth.Month || a.AverageReferenceMonth.Year != b.AverageReferenceMonth.Year {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (s *MemoryStore) UpsertInterestSet(set model.InterestSet) error {
 	s.logger.Debug("upserting InterestSet", zap.Any("interestSet", set))
 
 	// Check if an entry with the same Bank, Type, and Term already exists
 	for i, existing := range s.data {
-		if existing.Bank == set.Bank && existing.Type == set.Type && existing.Term == set.Term {
-			// For average type, also check if the reference month matches
-			if set.Type == model.TypeAverageRate {
-				// Both must have AverageReferenceMonth and they must match
-				if existing.AverageReferenceMonth == nil || set.AverageReferenceMonth == nil {
-					continue // Different reference months (one nil, one not)
-				}
-				if existing.AverageReferenceMonth.Month != set.AverageReferenceMonth.Month ||
-					existing.AverageReferenceMonth.Year != set.AverageReferenceMonth.Year {
-					continue // Different reference months
-				}
-			}
-
+		if alreadyExists(existing, set) {
 			s.logger.Debug("updating existing InterestSet",
 				zap.String("bank", string(set.Bank)),
 				zap.String("type", string(set.Type)),

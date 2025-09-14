@@ -1,6 +1,8 @@
+// #nosec G404 // not used in security context, no strong randomness needed
 package store
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -9,8 +11,49 @@ import (
 	"go.uber.org/zap"
 )
 
+// Helper function to generate random interest sets
+func generateInterestSet(interestType model.Type, term model.Term, rate float32) model.InterestSet {
+	baseTime := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
+
+	// Random bank names
+	banks := []model.Bank{"SEB", "Danske Bank", "Swedbank", "Handelsbanken", "Nordea", "Länsförsäkringar"}
+
+	set := model.InterestSet{
+		Bank:          banks[rand.Intn(len(banks))],
+		Type:          interestType,
+		Term:          term,
+		NominalRate:   rate,
+		ChangedOn:     nil,
+		LastCrawledAt: baseTime.Add(time.Duration(rand.Intn(24)) * time.Hour),
+	}
+
+	// Add type-specific fields
+	switch interestType { //nolint:exhaustive
+	case model.TypeAverageRate:
+		set.AverageReferenceMonth = &model.AvgMonth{
+			Month: time.Month(rand.Intn(12) + 1),
+			Year:  uint(2024),
+		}
+	case model.TypeRatioDiscounted:
+		set.RatioDiscountBoundaries = &model.RatioDiscountBoundary{
+			MinRatio: rand.Float32() * 0.5,
+			MaxRatio: 0.5 + rand.Float32()*0.5,
+		}
+	case model.TypeUnionDiscounted:
+		set.UnionDiscount = true
+	}
+
+	return set
+}
+
 func TestMemoryStore_GetInterestSets(t *testing.T) {
 	t.Parallel()
+
+	// Pre-generate test data - only set critical attributes
+	listRate := generateInterestSet(model.TypeListRate, model.Term1year, 3.5)
+	avgRateJan := generateInterestSet(model.TypeAverageRate, model.Term2years, 4.2)
+	avgRateJan.AverageReferenceMonth = &model.AvgMonth{Month: time.January, Year: 2024}
+
 	tests := []struct {
 		name         string
 		existingData []model.InterestSet
@@ -22,74 +65,14 @@ func TestMemoryStore_GetInterestSets(t *testing.T) {
 			wantData:     []model.InterestSet{},
 		},
 		{
-			name: "single interest set",
-			existingData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-			},
+			name:         "single interest set",
+			existingData: []model.InterestSet{listRate},
+			wantData:     []model.InterestSet{listRate},
 		},
 		{
-			name: "multiple interest sets",
-			existingData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.2,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.2,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-			},
+			name:         "multiple interest sets",
+			existingData: []model.InterestSet{listRate, avgRateJan},
+			wantData:     []model.InterestSet{listRate, avgRateJan},
 		},
 	}
 	for _, tt := range tests {
@@ -113,8 +96,30 @@ func TestMemoryStore_GetInterestSets(t *testing.T) {
 func TestMemoryStore_UpsertInterestSet(t *testing.T) {
 	t.Parallel()
 
-	// Helper to create time pointer
+	// Pre-generate test data - only set critical attributes, let others be randomized
+	listRate := generateInterestSet(model.TypeListRate, model.Term1year, 3.5)
+	listRateUpdated := generateInterestSet(model.TypeListRate, model.Term1year, 4.0)
+	// Ensure they have the same bank for matching
+	listRateUpdated.Bank = listRate.Bank
+
+	avgRateJan := generateInterestSet(model.TypeAverageRate, model.Term2years, 4.2)
+	avgRateJan.AverageReferenceMonth = &model.AvgMonth{Month: time.January, Year: 2024}
+	avgRateJanUpdated := generateInterestSet(model.TypeAverageRate, model.Term2years, 4.5)
+	avgRateJanUpdated.AverageReferenceMonth = &model.AvgMonth{Month: time.January, Year: 2024}
+	// Ensure they have the same bank for matching
+	avgRateJanUpdated.Bank = avgRateJan.Bank
+
+	avgRateFeb := generateInterestSet(model.TypeAverageRate, model.Term2years, 4.8)
+	avgRateFeb.AverageReferenceMonth = &model.AvgMonth{Month: time.February, Year: 2024}
+	// Ensure they have the same bank for matching
+	avgRateFeb.Bank = avgRateJan.Bank
+
+	ratioDiscounted := generateInterestSet(model.TypeRatioDiscounted, model.Term3years, 2.8)
+	unionDiscounted := generateInterestSet(model.TypeUnionDiscounted, model.Term5years, 2.1)
+
+	withChangedOn := generateInterestSet(model.TypeListRate, model.Term10years, 4.8)
 	changedTime := time.Date(2024, 1, 10, 9, 0, 0, 0, time.UTC)
+	withChangedOn.ChangedOn = &changedTime
 
 	tests := []struct {
 		name         string
@@ -125,276 +130,50 @@ func TestMemoryStore_UpsertInterestSet(t *testing.T) {
 		{
 			name:         "add to empty store",
 			existingData: []model.InterestSet{},
-			arg: model.InterestSet{
-				Bank:          "SEB",
-				Type:          model.TypeListRate,
-				Term:          model.Term1year,
-				NominalRate:   3.5,
-				ChangedOn:     nil,
-				LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-			},
+			arg:          listRate,
+			wantData:     []model.InterestSet{listRate},
 		},
 		{
-			name: "add to existing data",
-			existingData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-			},
-			arg: model.InterestSet{
-				Bank:          "Danske Bank",
-				Type:          model.TypeAverageRate,
-				Term:          model.Term2years,
-				NominalRate:   4.2,
-				ChangedOn:     nil,
-				LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-				AverageReferenceMonth: &model.AvgMonth{
-					Month: time.January,
-					Year:  2024,
-				},
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.2,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-			},
+			name:         "add to existing data",
+			existingData: []model.InterestSet{listRate},
+			arg:          avgRateJan,
+			wantData:     []model.InterestSet{listRate, avgRateJan},
 		},
 		{
 			name:         "add ratio discounted rate",
 			existingData: []model.InterestSet{},
-			arg: model.InterestSet{
-				Bank:          "Swedbank",
-				Type:          model.TypeRatioDiscounted,
-				Term:          model.Term3years,
-				NominalRate:   2.8,
-				ChangedOn:     nil,
-				LastCrawledAt: time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC),
-				RatioDiscountBoundaries: &model.RatioDiscountBoundary{
-					MinRatio: 0.5,
-					MaxRatio: 0.8,
-				},
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "Swedbank",
-					Type:          model.TypeRatioDiscounted,
-					Term:          model.Term3years,
-					NominalRate:   2.8,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC),
-					RatioDiscountBoundaries: &model.RatioDiscountBoundary{
-						MinRatio: 0.5,
-						MaxRatio: 0.8,
-					},
-				},
-			},
+			arg:          ratioDiscounted,
+			wantData:     []model.InterestSet{ratioDiscounted},
 		},
 		{
 			name:         "add union discounted rate",
 			existingData: []model.InterestSet{},
-			arg: model.InterestSet{
-				Bank:          "Handelsbanken",
-				Type:          model.TypeUnionDiscounted,
-				Term:          model.Term5years,
-				NominalRate:   2.1,
-				ChangedOn:     nil,
-				LastCrawledAt: time.Date(2024, 1, 15, 13, 0, 0, 0, time.UTC),
-				UnionDiscount: true,
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "Handelsbanken",
-					Type:          model.TypeUnionDiscounted,
-					Term:          model.Term5years,
-					NominalRate:   2.1,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 13, 0, 0, 0, time.UTC),
-					UnionDiscount: true,
-				},
-			},
+			arg:          unionDiscounted,
+			wantData:     []model.InterestSet{unionDiscounted},
 		},
 		{
 			name:         "add with changed on date",
 			existingData: []model.InterestSet{},
-			arg: model.InterestSet{
-				Bank:          "Nordea",
-				Type:          model.TypeListRate,
-				Term:          model.Term10years,
-				NominalRate:   4.8,
-				ChangedOn:     &changedTime,
-				LastCrawledAt: time.Date(2024, 1, 15, 14, 0, 0, 0, time.UTC),
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "Nordea",
-					Type:          model.TypeListRate,
-					Term:          model.Term10years,
-					NominalRate:   4.8,
-					ChangedOn:     &changedTime,
-					LastCrawledAt: time.Date(2024, 1, 15, 14, 0, 0, 0, time.UTC),
-				},
-			},
+			arg:          withChangedOn,
+			wantData:     []model.InterestSet{withChangedOn},
 		},
 		{
-			name: "update existing entry (replaces duplicate)",
-			existingData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   3.5,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
-				},
-			},
-			arg: model.InterestSet{
-				Bank:          "SEB",
-				Type:          model.TypeListRate,
-				Term:          model.Term1year,
-				NominalRate:   4.0, // Updated rate
-				ChangedOn:     &changedTime,
-				LastCrawledAt: time.Date(2024, 1, 16, 10, 0, 0, 0, time.UTC), // Updated crawl time
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "SEB",
-					Type:          model.TypeListRate,
-					Term:          model.Term1year,
-					NominalRate:   4.0, // Updated rate
-					ChangedOn:     &changedTime,
-					LastCrawledAt: time.Date(2024, 1, 16, 10, 0, 0, 0, time.UTC), // Updated crawl time
-				},
-			},
+			name:         "update existing entry (replaces duplicate)",
+			existingData: []model.InterestSet{listRate},
+			arg:          listRateUpdated,
+			wantData:     []model.InterestSet{listRateUpdated},
 		},
 		{
-			name: "update average rate with same reference month",
-			existingData: []model.InterestSet{
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.2,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-			},
-			arg: model.InterestSet{
-				Bank:          "Danske Bank",
-				Type:          model.TypeAverageRate,
-				Term:          model.Term2years,
-				NominalRate:   4.5, // Updated rate
-				ChangedOn:     &changedTime,
-				LastCrawledAt: time.Date(2024, 1, 16, 11, 0, 0, 0, time.UTC), // Updated crawl time
-				AverageReferenceMonth: &model.AvgMonth{
-					Month: time.January, // Same month
-					Year:  2024,         // Same year
-				},
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.5, // Updated rate
-					ChangedOn:     &changedTime,
-					LastCrawledAt: time.Date(2024, 1, 16, 11, 0, 0, 0, time.UTC), // Updated crawl time
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-			},
+			name:         "update average rate with same reference month",
+			existingData: []model.InterestSet{avgRateJan},
+			arg:          avgRateJanUpdated,
+			wantData:     []model.InterestSet{avgRateJanUpdated},
 		},
 		{
-			name: "add average rate with different reference month",
-			existingData: []model.InterestSet{
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.2,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-			},
-			arg: model.InterestSet{
-				Bank:          "Danske Bank",
-				Type:          model.TypeAverageRate,
-				Term:          model.Term2years,
-				NominalRate:   4.8, // Different rate
-				ChangedOn:     &changedTime,
-				LastCrawledAt: time.Date(2024, 1, 16, 11, 0, 0, 0, time.UTC),
-				AverageReferenceMonth: &model.AvgMonth{
-					Month: time.February, // Different month
-					Year:  2024,
-				},
-			},
-			wantData: []model.InterestSet{
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.2,
-					ChangedOn:     nil,
-					LastCrawledAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.January,
-						Year:  2024,
-					},
-				},
-				{
-					Bank:          "Danske Bank",
-					Type:          model.TypeAverageRate,
-					Term:          model.Term2years,
-					NominalRate:   4.8, // New entry
-					ChangedOn:     &changedTime,
-					LastCrawledAt: time.Date(2024, 1, 16, 11, 0, 0, 0, time.UTC),
-					AverageReferenceMonth: &model.AvgMonth{
-						Month: time.February, // Different month
-						Year:  2024,
-					},
-				},
-			},
+			name:         "add average rate with different reference month",
+			existingData: []model.InterestSet{avgRateJan},
+			arg:          avgRateFeb,
+			wantData:     []model.InterestSet{avgRateJan, avgRateFeb},
 		},
 	}
 

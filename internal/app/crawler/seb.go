@@ -16,10 +16,10 @@ import (
 
 const (
 	sebBankName              model.Bank = "SEB"
-	sebAvgCurrentHtmlUrl     string     = "https://pricing-portal-web-public.clouda.sebgroup.com/mortgage/averageratehistoric"
-	sebApiKeyJsFileUrlPrefix string     = "https://pricing-portal-web-public.clouda.sebgroup.com/"
-	sebListRateUrl           string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/listrate/current"
-	sebAverageRatesUrl       string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/averagerate/historic"
+	sebAvgCurrentHTMLURL     string     = "https://pricing-portal-web-public.clouda.sebgroup.com/mortgage/averageratehistoric"
+	sebAPIKeyJsFileURLPrefix string     = "https://pricing-portal-web-public.clouda.sebgroup.com/" //nolint:gosec // does not contain secret
+	sebListRateURL           string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/listrate/current"
+	sebAverageRatesURL       string     = "https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/averagerate/historic"
 )
 
 var (
@@ -41,7 +41,7 @@ func NewSebBankCrawler(logger *zap.Logger) *SebBankCrawler {
 func (c *SebBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	crawlTime := time.Now().UTC()
 
-	apiKey, err := c.fetchApiKey()
+	apiKey, err := c.fetchAPIKey()
 	if err != nil {
 		c.logger.Error("failed fetching SEB API key", zap.Error(err))
 		return
@@ -62,19 +62,19 @@ func (c *SebBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	}
 }
 
-func (c *SebBankCrawler) fetchApiKey() (string, error) {
-	rawHtml, err := utils.FetchRawContentFromUrl(sebAvgCurrentHtmlUrl, utils.DecoderUtf8, nil)
+func (c *SebBankCrawler) fetchAPIKey() (string, error) {
+	rawHTML, err := utils.FetchRawContentFromURL(sebAvgCurrentHTMLURL, utils.DecoderUtf8, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed reading SEB website that references JS file that contains API key: %w", err)
 	}
 
-	jsFileName := jsFileRegex.FindString(rawHtml)
+	jsFileName := jsFileRegex.FindString(rawHTML)
 	if jsFileName == "" {
 		return "", errors.New("failed finding file name for JS file that contains API key")
 	}
 
-	jsFileUrl := sebApiKeyJsFileUrlPrefix + jsFileName
-	rawJs, err := utils.FetchRawContentFromUrl(jsFileUrl, utils.DecoderUtf8, nil)
+	jsFileURL := sebAPIKeyJsFileURLPrefix + jsFileName
+	rawJs, err := utils.FetchRawContentFromURL(jsFileURL, utils.DecoderUtf8, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed reading SEB JS file for API key: %w", err)
 	}
@@ -96,14 +96,14 @@ type sebListRatesResponseItem struct {
 }
 
 func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
-	rawJson, err := c.fetchRawContentFromUrl(sebListRateUrl, utils.DecoderUtf8, apiKey)
+	rawJSON, err := c.fetchRawContentFromURL(sebListRateURL, utils.DecoderUtf8, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading SEB list rates API: %w", err)
 	}
 
 	var listRates []sebListRatesResponseItem
-	if err := json.Unmarshal([]byte(rawJson), &listRates); err != nil {
-		c.logger.Error("failed unmarshalling SEB list rates", zap.Error(err), zap.String("rawJson", rawJson))
+	if err := json.Unmarshal([]byte(rawJSON), &listRates); err != nil {
+		c.logger.Error("failed unmarshalling SEB list rates", zap.Error(err), zap.String("rawJSON", rawJSON))
 		return nil, fmt.Errorf("failed unmarshalling SEB list rates: %w", err)
 	}
 
@@ -138,15 +138,15 @@ func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]m
 	return interestSets, nil
 }
 
-func (c *SebBankCrawler) fetchRawContentFromUrl(url string, decoder utils.Decoder, apiKey string) (string, error) {
-	origin, _ := strings.CutSuffix(sebApiKeyJsFileUrlPrefix, "/")
+func (c *SebBankCrawler) fetchRawContentFromURL(url string, decoder utils.Decoder, apiKey string) (string, error) {
+	origin, _ := strings.CutSuffix(sebAPIKeyJsFileURLPrefix, "/")
 	headers := map[string]string{
 		"X-API-Key": apiKey,
-		"Referer":   sebApiKeyJsFileUrlPrefix,
+		"Referer":   sebAPIKeyJsFileURLPrefix,
 		"Origin":    origin,
 	}
 
-	return utils.FetchRawContentFromUrl(url, decoder, headers)
+	return utils.FetchRawContentFromURL(url, decoder, headers) //nolint:wrapcheck
 }
 
 type sebAverageRatesResponse struct {
@@ -155,14 +155,14 @@ type sebAverageRatesResponse struct {
 }
 
 func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
-	rawJson, err := c.fetchRawContentFromUrl(sebAverageRatesUrl, utils.DecoderUtf8, apiKey)
+	rawJSON, err := c.fetchRawContentFromURL(sebAverageRatesURL, utils.DecoderUtf8, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading SEB average rates API: %w", err)
 	}
 
 	var avgRates []sebAverageRatesResponse
-	if err := json.Unmarshal([]byte(rawJson), &avgRates); err != nil {
-		c.logger.Error("failed unmarshalling SEB average rates", zap.Error(err), zap.String("rawJson", rawJson))
+	if err := json.Unmarshal([]byte(rawJSON), &avgRates); err != nil {
+		c.logger.Error("failed unmarshalling SEB average rates", zap.Error(err), zap.String("rawJSON", rawJSON))
 		return nil, fmt.Errorf("failed unmarshalling SEB average rates: %w", err)
 	}
 
@@ -197,7 +197,6 @@ func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) (
 				ChangedOn:               nil,
 			})
 		}
-
 	}
 
 	return interestSets, nil
@@ -229,7 +228,7 @@ func parseReferenceMonth(data uint, regex *regexp.Regexp) (model.AvgMonth, error
 	}
 
 	return model.AvgMonth{
-		Year:  uint(year),
+		Year:  uint(year), //nolint:gosec // year will never be negative due to the above checks
 		Month: time.Month(month),
 	}, nil
 }
