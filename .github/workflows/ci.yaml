@@ -5,7 +5,7 @@ on:
 
 jobs:
   check:
-    name: golangci-lint • go vet • go test
+    name: golangci-lint • go vet • go test • govulncheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
