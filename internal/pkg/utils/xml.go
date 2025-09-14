@@ -70,7 +70,6 @@ func PrintTable(table Table) { //nolint: unused // useful for debugging
 // ParseTable parses the Table starting from the current position of the tokenizer
 func ParseTable(tokenizer *html.Tokenizer) (Table, error) {
 	var t Table
-	isFirstRow := true
 
 	for {
 		tt := tokenizer.Next()
@@ -80,16 +79,12 @@ func ParseTable(tokenizer *html.Tokenizer) (Table, error) {
 
 		case html.StartTagToken:
 			var err error
-			t, err = handleStartTagInTable(tokenizer, t, isFirstRow)
-			if err != nil {
-				if errors.Is(err, ErrIsFirstRow) {
-					isFirstRow = false
-					continue
-				}
-				if errors.Is(err, errIsNoTrTag) {
-					continue
-				}
-				return t, err
+			row, err := extractTableRow(tokenizer)
+			if len(row) > 0 { // even with an error, there might be a valid row
+				addRowToTable(&t, row)
+			}
+			if errors.Is(err, io.EOF) {
+				return t, nil // reached end of table or document
 			}
 
 		case html.EndTagToken:
@@ -103,35 +98,28 @@ func ParseTable(tokenizer *html.Tokenizer) (Table, error) {
 	}
 }
 
+func addRowToTable(t *Table, row []string) {
+	if t.Header == nil {
+		t.Header = row
+	} else {
+		t.Rows = append(t.Rows, row)
+	}
+}
+
 func isClosingTableTag(tokenizer *html.Tokenizer) bool {
 	tn, _ := tokenizer.TagName()
 	tagName := string(tn)
 	return tagName == "table"
 }
 
-func handleStartTagInTable(tokenizer *html.Tokenizer, t Table, isFirstRow bool) (Table, error) {
+func extractTableRow(tokenizer *html.Tokenizer) ([]string, error) {
 	tn, _ := tokenizer.TagName()
 	tagName := string(tn)
 	if tagName != "tr" {
-		return t, errIsNoTrTag
+		return nil, errIsNoTrTag
 	}
 
-	row, err := parseTableRow(tokenizer)
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return t, nil
-		}
-		return t, err
-	}
-
-	if isFirstRow {
-		t.Header = row
-		return t, ErrIsFirstRow
-	} else {
-		t.Rows = append(t.Rows, row)
-	}
-
-	return t, nil
+	return parseTableRow(tokenizer)
 }
 
 func handleErrToken(err error) error {
