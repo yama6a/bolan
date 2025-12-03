@@ -145,6 +145,110 @@ mockClient := &httpmock.ClientMock{
 crawler := NewBankNameCrawler(mockClient, logger)
 ```
 
+## Testing with Golden Files
+
+### Overview
+Golden file testing stores real website HTML in `testdata/` directories for deterministic testing. This approach:
+- Captures real-world HTML structure for accurate parsing tests
+- Eliminates network dependency during tests
+- Provides reproducible test fixtures
+
+### Directory Structure
+```
+internal/app/crawler/
+├── danske_bank.go
+├── danske_bank_test.go
+└── testdata/
+    └── danske_bank.html    # Real HTML from bank website
+```
+
+### Creating a Golden File
+Fetch real HTML using curl with a browser User-Agent:
+```bash
+curl -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
+    "https://bank.example.com/rates" > internal/app/crawler/testdata/bank_name.html
+```
+
+### Test Helper Pattern
+```go
+func loadGoldenFile(t *testing.T, filename string) string {
+    t.Helper()
+    data, err := os.ReadFile(filename)
+    if err != nil {
+        t.Fatalf("failed to load golden file %s: %v", filename, err)
+    }
+    return string(data)
+}
+```
+
+### Using Golden Files in Tests
+```go
+func TestBankCrawler_Crawl(t *testing.T) {
+    t.Parallel()
+    goldenHTML := loadGoldenFile(t, "testdata/bank_name.html")
+
+    mockClient := &httpmock.ClientMock{
+        FetchFunc: func(url string, headers map[string]string) (string, error) {
+            return goldenHTML, nil
+        },
+    }
+
+    crawler := NewBankNameCrawler(mockClient, zap.NewNop())
+    ch := make(chan model.InterestSet, 100)
+    crawler.Crawl(ch)
+    close(ch)
+
+    var results []model.InterestSet
+    for r := range ch {
+        results = append(results, r)
+    }
+    // Assert expected results...
+}
+```
+
+### Reducing Test Complexity
+Extract helper functions to keep cyclomatic complexity under 10:
+```go
+// countRatesByType counts list rates and average rates from results.
+func countRatesByType(results []model.InterestSet) (listCount, avgCount int) {
+    for _, r := range results {
+        switch r.Type {
+        case model.TypeListRate:
+            listCount++
+        case model.TypeAverageRate:
+            avgCount++
+        case model.TypeRatioDiscounted, model.TypeUnionDiscounted:
+            // Not counted in this helper
+        }
+    }
+    return listCount, avgCount
+}
+
+// assertBankName verifies all results have the expected bank name.
+func assertBankName(t *testing.T, results []model.InterestSet, wantBank model.Bank) {
+    t.Helper()
+    for _, r := range results {
+        if r.Bank != wantBank {
+            t.Errorf("bank = %q, want %q", r.Bank, wantBank)
+        }
+    }
+}
+```
+
+### Test Categories
+Each crawler should have tests for:
+1. **Integration test**: `TestBankCrawler_Crawl` - Full crawl with mocked HTTP
+2. **Extract methods**: `TestBankCrawler_extractListRates`, `TestBankCrawler_extractAverageRates`
+3. **Parsing functions**: Date parsing, rate parsing, term parsing
+4. **Edge cases**: Empty input, malformed data, missing fields
+5. **Interface compliance**: `var _ SiteCrawler = &BankCrawler{}`
+
+### Updating Golden Files
+When a bank's website changes:
+1. Fetch fresh HTML: `curl -A "..." "url" > testdata/bank.html`
+2. Update tests to match new structure
+3. Commit both the new golden file and test updates together
+
 ## Fixing Broken Crawlers
 
 ### Diagnosis Steps
