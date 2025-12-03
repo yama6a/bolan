@@ -6,6 +6,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// Store defines the interface for persisting interest rate data.
+type Store interface {
+	UpsertInterestSet(set model.InterestSet) error
+	GetInterestSets() ([]model.InterestSet, error)
+}
+
+// Compile-time interface compliance check.
+var _ Store = &MemoryStore{}
+
+// MemoryStore implements Store using in-memory storage.
 type MemoryStore struct {
 	logger *zap.Logger
 	data   []model.InterestSet

@@ -4,27 +4,23 @@ import (
 	"sync"
 
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
+	"github.com/yama6a/bolan-compare/internal/pkg/store"
 	"go.uber.org/zap"
 )
-
-type Store interface {
-	UpsertInterestSet(set model.InterestSet) error
-	GetInterestSets() ([]model.InterestSet, error)
-}
 
 type SiteCrawler interface {
 	Crawl(result chan<- model.InterestSet)
 }
 
 type Service struct {
-	store    Store
+	store    store.Store
 	crawlers []SiteCrawler
 	logger   *zap.Logger
 }
 
-func NewService(store Store, crawlers []SiteCrawler, logger *zap.Logger) *Service {
+func NewService(s store.Store, crawlers []SiteCrawler, logger *zap.Logger) *Service {
 	return &Service{
-		store:    store,
+		store:    s,
 		crawlers: crawlers,
 		logger:   logger,
 	}

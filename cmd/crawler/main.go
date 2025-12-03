@@ -30,7 +30,6 @@ func main() {
 	httpClient := http.NewClient(baseHTTPClient, httpTimeout)
 
 	crawlers := []crawler.SiteCrawler{
-		// crawler.NewDummyCrawler(logger.Named("DummyCrawler")),
 		crawler.NewDanskeBankCrawler(httpClient, logger.Named("danske-bank-crawler")),
 		crawler.NewSebBankCrawler(httpClient, logger.Named("seb-crawler")),
 		crawler.NewICABankenCrawler(httpClient, logger.Named("ica-banken-crawler")),

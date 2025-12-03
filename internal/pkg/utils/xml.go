@@ -63,20 +63,6 @@ func FindTokenizedNthTableByTextBeforeTable(rawHTML, stringToFind string, skip i
 	return nil, fmt.Errorf("failed to find text %q before table: %w", stringToFind, tokenizer.Err())
 }
 
-// PrintTable prints the Table to standard output for debugging purposes.
-func PrintTable(table Table) {
-	for _, string := range table.Header {
-		fmt.Print(string, "|")
-	}
-	fmt.Println("\n--------------------")
-	for _, row := range table.Rows {
-		for _, string := range row {
-			fmt.Print(string, "|")
-		}
-		fmt.Println()
-	}
-}
-
 // ParseTable parses the Table starting from the current position of the tokenizer.
 func ParseTable(tokenizer *html.Tokenizer) (Table, error) {
 	var t Table

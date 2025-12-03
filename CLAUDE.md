@@ -197,6 +197,22 @@ term, err := utils.ParseTerm("1 år")   // Returns model.Term1year
 - URL const: `{bank}URL` or `{bank}ListRatesURL`/`{bank}AvgRatesURL`
 - Bank const: `{bank}BankName` of type `model.Bank`
 
+### Interface Compliance
+Always add compile-time interface checks for types that implement interfaces:
+```go
+var _ SiteCrawler = &NordeaCrawler{}  // Ensures NordeaCrawler implements SiteCrawler
+var _ Client = &client{}              // Ensures client implements Client
+```
+This catches interface mismatches at compile time rather than runtime.
+
+### Interface Location
+Define interfaces next to their implementations, not where they are injected. For example:
+- `Store` interface lives in `internal/pkg/store/` alongside `MemoryStore`
+- `Client` interface lives in `internal/pkg/http/` alongside `client`
+- `SiteCrawler` interface lives in `internal/app/crawler/` alongside crawler implementations
+
+This follows the Go proverb "accept interfaces, return structs" and keeps related code together.
+
 ### Error Handling
 Log and continue on parse errors (don't fail entire crawl):
 ```go

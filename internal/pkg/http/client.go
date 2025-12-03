@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+// Compile-time interface compliance check.
+var _ Client = &client{}
+
 // Client defines the interface for HTTP content fetching.
 type Client interface {
 	// Fetch retrieves content from a URL with optional custom headers.
@@ -27,7 +30,7 @@ type client struct {
 
 // NewClient creates a new Client wrapping the provided http.Client.
 //
-//nolint:ireturn // Intentionally returns interface for testability with mocks.
+//nolint:ireturn // Returns interface for testability.
 func NewClient(httpClient *gohttp.Client, timeout time.Duration) Client {
 	return &client{
 		httpClient: httpClient,
