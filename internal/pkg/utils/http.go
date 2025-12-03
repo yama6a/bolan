@@ -27,6 +27,12 @@ var (
 
 type Decoder func([]byte) string
 
+// BrowserInfo contains User-Agent and Sec-Ch-Ua headers that must have matching versions.
+type BrowserInfo struct {
+	UserAgent string
+	SecChUa   string
+}
+
 func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]string) (string, error) {
 	client := http.Client{Timeout: 30 * time.Second}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -41,11 +47,13 @@ func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]stri
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
+	browserInfo := randomBrowserInfo()
 	defaultHeaders := map[string]string{
 		"Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9,application/json",
-		"Accept-Language": "sv-SE,sv;q=0.5",
+		"Accept-Language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
 		"Connection":      "keep-alive",
-		"User-Agent":      randomUserAgent(),
+		"User-Agent":      browserInfo.UserAgent,
+		"Sec-Ch-Ua":       browserInfo.SecChUa,
 		"Cache-Control":   "no-cache",
 	}
 	for key, value := range defaultHeaders {
@@ -70,58 +78,52 @@ func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]stri
 	return decoder(body), nil
 }
 
-// randomUserAgent generates a random User-Agent string for different browsers and platforms.
-func randomUserAgent() string {
-	browsers := []string{"Chrome", "Firefox", "Safari", "Edge"}
-	platforms := []string{
-		"Windows NT 10.0; Win64; x64",
-		"Macintosh; Intel Mac OS X %d_%d_%d",
-		"iPhone; CPU iPhone OS %d_%d like Mac OS X",
-		"Linux; Android %d; Pixel 3",
+// randomBrowserInfo generates matching User-Agent and Sec-Ch-Ua headers.
+// The Chrome/Chromium/Brave versions are kept in sync between both headers.
+func randomBrowserInfo() BrowserInfo {
+	// Chrome/Chromium version range (recent versions)
+	majorVersion := rand.Intn(25) + 120 // Version 120-144
+
+	// Platform for User-Agent
+	platforms := []struct {
+		uaPlatform string
+		generator  func() string
+	}{
+		{
+			uaPlatform: "Windows NT 10.0; Win64; x64",
+			generator:  func() string { return "Windows NT 10.0; Win64; x64" },
+		},
+		{
+			uaPlatform: "Macintosh",
+			generator: func() string {
+				macMajor := rand.Intn(3) + 13 // macOS 13-15
+				macMinor := rand.Intn(10)
+				macPatch := rand.Intn(10)
+				return fmt.Sprintf("Macintosh; Intel Mac OS X %d_%d_%d", macMajor, macMinor, macPatch)
+			},
+		},
 	}
 
-	// Randomly select browser and platform
-	browser := browsers[rand.Intn(len(browsers))]
-	platformTemplate := platforms[rand.Intn(len(platforms))]
+	platformInfo := platforms[rand.Intn(len(platforms))]
+	platform := platformInfo.generator()
 
-	// Generate random version numbers
-	majorVersion := rand.Intn(20) + 80 // Major version for browser (e.g., Chrome 80-99) //
-	minorVersion := rand.Intn(10)      // Minor version
-	patchVersion := rand.Intn(1000)    // Patch version
+	// Build User-Agent (Chrome-based)
+	minorVersion := rand.Intn(10)
+	patchVersion := rand.Intn(1000)
+	userAgent := fmt.Sprintf(
+		"Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%d.0.%d.%d Safari/537.36",
+		platform, majorVersion, minorVersion, patchVersion,
+	)
 
-	// Generate random OS versions
-	macMajor := rand.Intn(3) + 13       // macOS version 13-15
-	macMinor := rand.Intn(10)           // Minor version for macOS
-	macPatch := rand.Intn(10)           // Patch version for macOS
-	iosMajor := rand.Intn(4) + 15       // iOS version 15-18 // Todo: update to v26 once Apple switches to new versioning scheme: https://en.wikipedia.org/wiki/IOS_26
-	iosMinor := rand.Intn(5)            // Minor version for iOS
-	androidVersion := rand.Intn(4) + 14 // Android version 14-17
+	// Build matching Sec-Ch-Ua header
+	// Format: "Chromium";v="VERSION", "Brave";v="VERSION", "Not_A Brand";v="99"
+	secChUa := fmt.Sprintf(
+		`"Chromium";v="%d", "Brave";v="%d", "Not_A Brand";v="99"`,
+		majorVersion, majorVersion,
+	)
 
-	// Fill in the platform template with random OS versions
-	var platform string
-	switch platformTemplate {
-	case "Macintosh; Intel Mac OS X %d_%d_%d":
-		platform = fmt.Sprintf(platformTemplate, macMajor, macMinor, macPatch)
-	case "iPhone; CPU iPhone OS %d_%d like Mac OS X":
-		platform = fmt.Sprintf(platformTemplate, iosMajor, iosMinor)
-	case "Linux; Android %d; Pixel 3":
-		platform = fmt.Sprintf(platformTemplate, androidVersion)
-	default:
-		platform = platformTemplate // Windows platform doesn't require formatting
+	return BrowserInfo{
+		UserAgent: userAgent,
+		SecChUa:   secChUa,
 	}
-
-	// Construct User-Agent based on browser type
-	var userAgent string
-	switch browser {
-	case "Chrome":
-		userAgent = fmt.Sprintf("Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%d.0.%d.%d Safari/537.36", platform, majorVersion, minorVersion, patchVersion)
-	case "Firefox":
-		userAgent = fmt.Sprintf("Mozilla/5.0 (%s; rv:%d.0) Gecko/20100101 Firefox/%d.0", platform, majorVersion, majorVersion)
-	case "Safari":
-		userAgent = fmt.Sprintf("Mozilla/5.0 (%s) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/%d.0 Safari/605.1.15", platform, majorVersion)
-	case "Edge":
-		userAgent = fmt.Sprintf("Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%d.0.%d.%d Safari/537.36 Edg/%d.0.%d.%d", platform, majorVersion, minorVersion, patchVersion, majorVersion, minorVersion, patchVersion)
-	}
-
-	return userAgent
 }
