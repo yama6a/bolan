@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yama6a/bolan-compare/internal/pkg/utils"
-
+	"github.com/yama6a/bolan-compare/internal/pkg/http"
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
+	"github.com/yama6a/bolan-compare/internal/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +22,7 @@ const (
 var (
 	_ SiteCrawler = &DanskeBankCrawler{}
 
-	// YY-MM-DD
+	// YY-MM-DD format regex.
 	changedDateRegex = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$`)
 	interestRegex    = regexp.MustCompile(`^(\d+\.\d+ ?)%?$`)
 
@@ -54,18 +54,19 @@ var (
 )
 
 type DanskeBankCrawler struct {
-	logger *zap.Logger
+	httpClient http.Client
+	logger     *zap.Logger
 }
 
-func NewDanskeBankCrawler(logger *zap.Logger) *DanskeBankCrawler {
-	return &DanskeBankCrawler{logger: logger}
+func NewDanskeBankCrawler(httpClient http.Client, logger *zap.Logger) *DanskeBankCrawler {
+	return &DanskeBankCrawler{httpClient: httpClient, logger: logger}
 }
 
 func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 
 	crawlTime := time.Now().UTC()
-	rawHTML, err := utils.FetchRawContentFromURL(danskeURL, utils.DecoderUtf8, nil)
+	rawHTML, err := c.httpClient.Fetch(danskeURL, nil)
 	if err != nil {
 		c.logger.Error("failed reading Danske website for ListRates", zap.Error(err))
 		return
@@ -278,8 +279,9 @@ func parseDanskeBankChangeDate(data string) (time.Time, error) {
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC), nil
 }
 
-// E.g. "Augusti 2021" -> AvgMonth{Month: time.August,   Year: 2021}
-// E.g. "Feb 1955"     -> AvgMonth{Month: time.February, Year: 1955}
+// parseReferenceMonth parses Swedish month names into AvgMonth.
+// E.g. "Augusti 2021" -> AvgMonth{Month: time.August,   Year: 2021}.
+// E.g. "Feb 1955"     -> AvgMonth{Month: time.February, Year: 1955}.
 func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, error) {
 	data = strings.ToLower(data)
 	data = strings.TrimSpace(data)

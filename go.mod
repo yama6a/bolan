@@ -4,8 +4,8 @@ go 1.25
 
 require (
 	github.com/jackc/pgx/v4 v4.18.3
-	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.44.0
+	go.uber.org/zap v1.27.1
+	golang.org/x/net v0.47.0
 )
 
 require (
@@ -17,7 +17,11 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgtype v1.14.4 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
+	github.com/matryer/moq v0.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 )

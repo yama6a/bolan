@@ -7,32 +7,34 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yama6a/bolan-compare/internal/pkg/http"
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"github.com/yama6a/bolan-compare/internal/pkg/utils"
 	"go.uber.org/zap"
 )
 
 const (
-	nordeaListRatesURL              = "https://www.nordea.se/privat/produkter/bolan/listrantor.html"
-	nordeaAvgRatesURL               = "https://www.nordea.se/privat/produkter/bolan/snittrantor.html"
-	nordeaBankName     model.Bank   = "Nordea"
+	nordeaListRatesURL            = "https://www.nordea.se/privat/produkter/bolan/listrantor.html"
+	nordeaAvgRatesURL             = "https://www.nordea.se/privat/produkter/bolan/snittrantor.html"
+	nordeaBankName     model.Bank = "Nordea"
 )
 
 var (
 	_ SiteCrawler = &NordeaCrawler{}
 
-	// Nordea date format: YYYY-MM-DD
+	// Nordea date format: YYYY-MM-DD.
 	nordeaDateRegex = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$`)
-	// Nordea average month format in header: "202511" (YYYYMM)
+	// Nordea average month format in header: "202511" (YYYYMM).
 	nordeaAvgMonthRegex = regexp.MustCompile(`^(\d{4})(0[1-9]|1[0-2])$`)
 )
 
 type NordeaCrawler struct {
-	logger *zap.Logger
+	httpClient http.Client
+	logger     *zap.Logger
 }
 
-func NewNordeaCrawler(logger *zap.Logger) *NordeaCrawler {
-	return &NordeaCrawler{logger: logger}
+func NewNordeaCrawler(httpClient http.Client, logger *zap.Logger) *NordeaCrawler {
+	return &NordeaCrawler{httpClient: httpClient, logger: logger}
 }
 
 func (c *NordeaCrawler) Crawl(channel chan<- model.InterestSet) {
@@ -41,7 +43,7 @@ func (c *NordeaCrawler) Crawl(channel chan<- model.InterestSet) {
 	crawlTime := time.Now().UTC()
 
 	// Fetch list rates
-	listRatesHTML, err := utils.FetchRawContentFromURL(nordeaListRatesURL, utils.DecoderUtf8, nil)
+	listRatesHTML, err := c.httpClient.Fetch(nordeaListRatesURL, nil)
 	if err != nil {
 		c.logger.Error("failed reading Nordea list rates website", zap.Error(err))
 	} else {
@@ -54,7 +56,7 @@ func (c *NordeaCrawler) Crawl(channel chan<- model.InterestSet) {
 	}
 
 	// Fetch average rates (different page)
-	avgRatesHTML, err := utils.FetchRawContentFromURL(nordeaAvgRatesURL, utils.DecoderUtf8, nil)
+	avgRatesHTML, err := c.httpClient.Fetch(nordeaAvgRatesURL, nil)
 	if err != nil {
 		c.logger.Error("failed reading Nordea average rates website", zap.Error(err))
 	} else {
@@ -71,6 +73,7 @@ func (c *NordeaCrawler) Crawl(channel chan<- model.InterestSet) {
 	}
 }
 
+//nolint:dupl // Each bank crawler is intentionally independent for maintainability
 func (c *NordeaCrawler) extractListRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
 	// Find the table with caption "Listräntor för bolån"
 	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Listräntor för bolån")
@@ -122,9 +125,10 @@ func (c *NordeaCrawler) extractListRates(rawHTML string, crawlTime time.Time) ([
 	return interestSets, nil
 }
 
+//nolint:cyclop // Complexity is inherent in multi-column table parsing with error handling
 func (c *NordeaCrawler) extractAverageRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
 	// Find the table with title "Snitträntor" - text appears before the table
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "respektive månad")
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "respektive månad") //nolint:misspell // Swedish text, not English
 	if err != nil {
 		return nil, fmt.Errorf("failed to find average rates table: %w", err)
 	}
@@ -239,7 +243,7 @@ func parseNordeaAvgMonth(monthStr string) (*model.AvgMonth, error) {
 	month, _ := strconv.Atoi(matches[2])
 
 	return &model.AvgMonth{
-		Year:  uint(year),
+		Year:  uint(year), //nolint:gosec // year is validated by regex to be 4 digits (0000-9999)
 		Month: time.Month(month),
 	}, nil
 }

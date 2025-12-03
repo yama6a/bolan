@@ -1,7 +1,12 @@
 package main
 
 import (
+	"fmt"
+	gohttp "net/http"
+	"time"
+
 	"github.com/yama6a/bolan-compare/internal/app/crawler"
+	"github.com/yama6a/bolan-compare/internal/pkg/http"
 	"github.com/yama6a/bolan-compare/internal/pkg/store"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -14,12 +19,22 @@ func main() {
 	logger, err := loggerConfig.Build()
 	noErr(err)
 
+	// Initialize shared HTTP client singleton.
+	httpTimeout := 30 * time.Second
+	baseHTTPClient := &gohttp.Client{
+		Timeout: httpTimeout,
+		CheckRedirect: func(_ *gohttp.Request, _ []*gohttp.Request) error {
+			return gohttp.ErrUseLastResponse
+		},
+	}
+	httpClient := http.NewClient(baseHTTPClient, httpTimeout)
+
 	crawlers := []crawler.SiteCrawler{
 		// crawler.NewDummyCrawler(logger.Named("DummyCrawler")),
-		crawler.NewDanskeBankCrawler(logger.Named("danske-bank-crawler")),
-		crawler.NewSebBankCrawler(logger.Named("seb-crawler")),
-		crawler.NewICABankenCrawler(logger.Named("ica-banken-crawler")),
-		crawler.NewNordeaCrawler(logger.Named("nordea-crawler")),
+		crawler.NewDanskeBankCrawler(httpClient, logger.Named("danske-bank-crawler")),
+		crawler.NewSebBankCrawler(httpClient, logger.Named("seb-crawler")),
+		crawler.NewICABankenCrawler(httpClient, logger.Named("ica-banken-crawler")),
+		crawler.NewNordeaCrawler(httpClient, logger.Named("nordea-crawler")),
 	}
 
 	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))
@@ -30,6 +45,7 @@ func main() {
 
 func noErr(err error) {
 	if err != nil {
-		panic("failed to initialize something important: " + err.Error())
+		fmt.Printf("failed to initialize something important: %v\n", err)
+		panic(err)
 	}
 }

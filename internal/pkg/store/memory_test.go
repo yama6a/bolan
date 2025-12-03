@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Helper function to generate random interest sets
+// generateInterestSet generates random interest sets for testing.
 func generateInterestSet(interestType model.Type, term model.Term, rate float32) model.InterestSet {
 	baseTime := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
 

@@ -21,8 +21,12 @@ test: assert_go_installed ## Run tests.
 vuln: assert_govulncheck_installed ## Run govulncheck.
 	govulncheck ./...
 
-.PHONE: ci
-ci: lint vet test vuln ## Run aci ll checks.
+.PHONY: ci
+ci: fumpt generate lint vet test vuln ## Run aci ll checks.
+
+.PHONY: generate
+generate: assert_go_installed ## Run code generation.
+	go generate ./...
 
 .PHONY: fumpt
 fumpt: assert_gofumpt_installed ## Run gofumpt to fix all formatting issues in project.

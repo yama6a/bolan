@@ -47,27 +47,29 @@ func (s *Service) Crawl() {
 	wg.Wait()
 	s.logger.Info("all crawlers finished, closing channels")
 
-	s.logger.Info("Found interestSets:")
 	interestSets, err := s.store.GetInterestSets()
 	if err != nil {
 		s.logger.Error("failed to get interestSets", zap.Error(err))
 		return
 	}
+
+	// Build summary by bank and type.
+	summary := make(map[model.Bank]map[model.Type]uint)
 	for _, is := range interestSets {
-		s.logger.Info("interestSet", zap.Any("interestSet", is))
+		if _, ok := summary[is.Bank]; !ok {
+			summary[is.Bank] = make(map[model.Type]uint)
+		}
+		summary[is.Bank][is.Type]++
 	}
 
-	result := make(map[model.Bank]map[model.Type]uint)
-	for _, is := range interestSets {
-		if _, ok := result[is.Bank]; !ok {
-			result[is.Bank] = make(map[model.Type]uint)
-		}
-		if _, ok := result[is.Bank][is.Type]; !ok {
-			result[is.Bank][is.Type] = 0
-		}
-		result[is.Bank][is.Type]++
+	// Log summary per bank.
+	for bank, types := range summary {
+		s.logger.Info("crawl results",
+			zap.String("bank", string(bank)),
+			zap.Uint("listRates", types[model.TypeListRate]),
+			zap.Uint("avgRates", types[model.TypeAverageRate]),
+		)
 	}
-	s.logger.Info("Found interesetSets", zap.Any("summary", result))
 
 	close(objChan)
 }

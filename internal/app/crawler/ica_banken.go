@@ -7,38 +7,40 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yama6a/bolan-compare/internal/pkg/http"
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"github.com/yama6a/bolan-compare/internal/pkg/utils"
 	"go.uber.org/zap"
 )
 
 const (
-	icaBankenURL              = "https://www.icabanken.se/lana/bolan/bolanerantor/"
+	icaBankenURL             = "https://www.icabanken.se/lana/bolan/bolanerantor/"
 	icaBankenName model.Bank = "ICA Banken"
 )
 
 var (
 	_ SiteCrawler = &ICABankenCrawler{}
 
-	// ICA Banken date format: YYYY-MM-DD
+	// ICA Banken date format: YYYY-MM-DD.
 	icaDateRegex = regexp.MustCompile(`^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$`)
-	// ICA Banken average month format: "2025 11" or "2024 12"
+	// ICA Banken average month format: "2025 11" or "2024 12".
 	icaAvgMonthRegex = regexp.MustCompile(`^(\d{4})\s+(\d{1,2})$`)
 )
 
 type ICABankenCrawler struct {
-	logger *zap.Logger
+	httpClient http.Client
+	logger     *zap.Logger
 }
 
-func NewICABankenCrawler(logger *zap.Logger) *ICABankenCrawler {
-	return &ICABankenCrawler{logger: logger}
+func NewICABankenCrawler(httpClient http.Client, logger *zap.Logger) *ICABankenCrawler {
+	return &ICABankenCrawler{httpClient: httpClient, logger: logger}
 }
 
 func (c *ICABankenCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 
 	crawlTime := time.Now().UTC()
-	rawHTML, err := utils.FetchRawContentFromURL(icaBankenURL, utils.DecoderUtf8, nil)
+	rawHTML, err := c.httpClient.Fetch(icaBankenURL, nil)
 	if err != nil {
 		c.logger.Error("failed reading ICA Banken website", zap.Error(err))
 		return
@@ -63,6 +65,7 @@ func (c *ICABankenCrawler) Crawl(channel chan<- model.InterestSet) {
 	}
 }
 
+//nolint:dupl // Each bank crawler is intentionally independent for maintainability
 func (c *ICABankenCrawler) extractListRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
 	// Search for "Aktuella bolåneräntor" which appears before the list rates table
 	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Aktuella bolåneräntor")
@@ -114,6 +117,7 @@ func (c *ICABankenCrawler) extractListRates(rawHTML string, crawlTime time.Time)
 	return interestSets, nil
 }
 
+//nolint:cyclop // Complexity is inherent in multi-column table parsing with error handling
 func (c *ICABankenCrawler) extractAverageRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
 	// Search for "Snitträntor för bolån" which appears before the average rates table
 	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Snitträntor för bolån")
@@ -226,7 +230,7 @@ func parseICAAvgMonth(monthStr string) (*model.AvgMonth, error) {
 	month, _ := strconv.Atoi(matches[2])
 
 	return &model.AvgMonth{
-		Year:  uint(year),
+		Year:  uint(year), //nolint:gosec // year is validated by regex to be 4 digits (0000-9999)
 		Month: time.Month(month),
 	}, nil
 }

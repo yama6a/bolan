@@ -9,11 +9,13 @@
 
 ## Project Structure
 ```
-cmd/crawler/         # Main entrypoint
-internal/app/crawler/# Crawler implementations (one file per bank)
-internal/pkg/model/  # Data models (InterestSet, Term, Bank, Type)
-internal/pkg/utils/  # HTTP fetching, HTML parsing, string normalization
-internal/pkg/store/  # Data storage interface
+cmd/crawler/                        # Main entrypoint (instantiates singletons)
+internal/app/crawler/               # Crawler implementations (one file per bank)
+internal/pkg/http/                  # HTTP client interface + implementation
+internal/pkg/http/httpmock/         # Generated mocks (via moq)
+internal/pkg/model/                 # Data models (InterestSet, Term, Bank, Type)
+internal/pkg/utils/                 # HTML parsing, string normalization
+internal/pkg/store/                 # Data storage interface
 ```
 
 ## Commands
@@ -25,6 +27,18 @@ make fumpt    # Format with gofumpt
 make ci       # Run all checks (lint, vet, test, vuln)
 ```
 
+## Workflow
+
+**IMPORTANT: Always run `make ci` after each work step and fix all issues before proceeding.**
+
+This ensures:
+- Code compiles correctly
+- All tests pass
+- Linting rules are satisfied
+- No security vulnerabilities
+
+If `make ci` fails, fix all reported issues before continuing to the next task.
+
 ## Adding a New Bank Crawler
 
 ### 1. Create crawler file
@@ -33,34 +47,37 @@ Create `internal/app/crawler/{bank_name}.go`. Follow existing pattern:
 package crawler
 
 type BankNameCrawler struct {
-    logger *zap.Logger
+    httpClient http.Client  // Dependency injected
+    logger     *zap.Logger
 }
 
 var _ SiteCrawler = &BankNameCrawler{}  // Interface compliance check
 
-func NewBankNameCrawler(logger *zap.Logger) *BankNameCrawler {
-    return &BankNameCrawler{logger: logger}
+func NewBankNameCrawler(httpClient http.Client, logger *zap.Logger) *BankNameCrawler {
+    return &BankNameCrawler{httpClient: httpClient, logger: logger}
 }
 
 func (c *BankNameCrawler) Crawl(channel chan<- model.InterestSet) {
-    // Fetch HTML/JSON, parse, send results to channel
+    // Fetch HTML/JSON using injected client, parse, send results to channel
+    html, err := c.httpClient.Fetch(url, nil)
 }
 ```
 
 ### 2. Register in main.go
 Add to `cmd/crawler/main.go`:
 ```go
+// httpClient is already instantiated as singleton in main()
 crawlers := []crawler.SiteCrawler{
-    crawler.NewBankNameCrawler(logger.Named("bank-name-crawler")),
+    crawler.NewBankNameCrawler(httpClient, logger.Named("bank-name-crawler")),
 }
 ```
 
 ### 3. Prefer HTTP over Playwright
-Always try basic `net/http` first:
+Always try basic `net/http` first via the injected `http.Client`:
 ```go
-html, err := utils.FetchRawContentFromURL(url, utils.DecoderUtf8, nil)
+html, err := c.httpClient.Fetch(url, nil)
 ```
-Only use Playwright if JS rendering is required (document why in code comment).
+Only use Playwright when planning/exploring the banks' websites. If you cannot fetch the required data with HTTP, document the reason in `crawler-plan.md`.
 
 ## HTML Table Parsing Pattern
 Use `utils.FindTokenizedTableByTextBeforeTable()` to locate tables:
@@ -85,16 +102,54 @@ type RatesResponse struct {
     } `json:"rates"`
 }
 
-body, err := utils.FetchRawContentFromURL(apiURL, utils.DecoderUtf8, nil)
+body, err := c.httpClient.Fetch(apiURL, nil)
 var resp RatesResponse
 if err := json.Unmarshal([]byte(body), &resp); err != nil { ... }
+```
+
+## Dependency Injection
+
+### Singletons
+All shared dependencies (including nested dependencies) are instantiated in `cmd/crawler/main.go`:
+```go
+import (
+    gohttp "net/http"
+    "github.com/yama6a/bolan-compare/internal/pkg/http"
+)
+
+httpTimeout := 30 * time.Second
+baseHTTPClient := &gohttp.Client{
+    Timeout: httpTimeout,
+    CheckRedirect: func(_ *gohttp.Request, _ []*gohttp.Request) error {
+        return gohttp.ErrUseLastResponse
+    },
+}
+httpClient := http.NewClient(baseHTTPClient, httpTimeout)
+```
+**Rule**: Packages must not instantiate their own dependencies internally. All `New*()` constructors receive dependencies as parameters.
+
+### Interfaces with Mocks
+Dependencies expose interfaces for testability. Generate mocks with:
+```bash
+go generate ./internal/pkg/http/...
+# Or manually: moq -out internal/pkg/http/httpmock/client_mock.go -pkg httpmock . Client
+```
+
+Use mocks in tests:
+```go
+mockClient := &httpmock.ClientMock{
+    FetchFunc: func(url string, headers map[string]string) (string, error) {
+        return `<html>...</html>`, nil
+    },
+}
+crawler := NewBankNameCrawler(mockClient, logger)
 ```
 
 ## Fixing Broken Crawlers
 
 ### Diagnosis Steps
 1. Run crawler, check error logs
-2. Fetch URL manually: `curl -v "https://bank.se/rates"`
+2. Fetch URL manually: `curl -v "https://bank.example.com/rates"`
 3. If 404/changed: Use browser DevTools to find new URL
 4. If empty response: Check if JS-rendered (view-source vs rendered)
 5. If blocked: Check User-Agent requirements

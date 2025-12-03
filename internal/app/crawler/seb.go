@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yama6a/bolan-compare/internal/pkg/http"
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"github.com/yama6a/bolan-compare/internal/pkg/utils"
 	"go.uber.org/zap"
@@ -31,11 +32,12 @@ var (
 )
 
 type SebBankCrawler struct {
-	logger *zap.Logger
+	httpClient http.Client
+	logger     *zap.Logger
 }
 
-func NewSebBankCrawler(logger *zap.Logger) *SebBankCrawler {
-	return &SebBankCrawler{logger: logger}
+func NewSebBankCrawler(httpClient http.Client, logger *zap.Logger) *SebBankCrawler {
+	return &SebBankCrawler{httpClient: httpClient, logger: logger}
 }
 
 func (c *SebBankCrawler) Crawl(channel chan<- model.InterestSet) {
@@ -63,7 +65,7 @@ func (c *SebBankCrawler) Crawl(channel chan<- model.InterestSet) {
 }
 
 func (c *SebBankCrawler) fetchAPIKey() (string, error) {
-	rawHTML, err := utils.FetchRawContentFromURL(sebAvgCurrentHTMLURL, utils.DecoderUtf8, nil)
+	rawHTML, err := c.httpClient.Fetch(sebAvgCurrentHTMLURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed reading SEB website that references JS file that contains API key: %w", err)
 	}
@@ -74,7 +76,7 @@ func (c *SebBankCrawler) fetchAPIKey() (string, error) {
 	}
 
 	jsFileURL := sebAPIKeyJsFileURLPrefix + jsFileName
-	rawJs, err := utils.FetchRawContentFromURL(jsFileURL, utils.DecoderUtf8, nil)
+	rawJs, err := c.httpClient.Fetch(jsFileURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed reading SEB JS file for API key: %w", err)
 	}
@@ -96,7 +98,7 @@ type sebListRatesResponseItem struct {
 }
 
 func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
-	rawJSON, err := c.fetchRawContentFromURL(sebListRateURL, utils.DecoderUtf8, apiKey)
+	rawJSON, err := c.fetchWithAPIKey(sebListRateURL, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading SEB list rates API: %w", err)
 	}
@@ -138,7 +140,7 @@ func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]m
 	return interestSets, nil
 }
 
-func (c *SebBankCrawler) fetchRawContentFromURL(url string, decoder utils.Decoder, apiKey string) (string, error) {
+func (c *SebBankCrawler) fetchWithAPIKey(url string, apiKey string) (string, error) {
 	origin, _ := strings.CutSuffix(sebAPIKeyJsFileURLPrefix, "/")
 	headers := map[string]string{
 		"X-API-Key": apiKey,
@@ -146,7 +148,7 @@ func (c *SebBankCrawler) fetchRawContentFromURL(url string, decoder utils.Decode
 		"Origin":    origin,
 	}
 
-	return utils.FetchRawContentFromURL(url, decoder, headers) //nolint:wrapcheck
+	return c.httpClient.Fetch(url, headers) //nolint:wrapcheck
 }
 
 type sebAverageRatesResponse struct {
@@ -155,7 +157,7 @@ type sebAverageRatesResponse struct {
 }
 
 func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
-	rawJSON, err := c.fetchRawContentFromURL(sebAverageRatesURL, utils.DecoderUtf8, apiKey)
+	rawJSON, err := c.fetchWithAPIKey(sebAverageRatesURL, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading SEB average rates API: %w", err)
 	}

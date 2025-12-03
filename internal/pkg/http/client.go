@@ -1,48 +1,46 @@
-// #nosec G404 // not used in security context, no strong randomness needed
+// Package http provides HTTP fetching capabilities for crawlers.
 //
-//nolint:revive,nolintlint // I like this package name, leave me alone
-package utils
+//go:generate go run -mod=mod github.com/matryer/moq -out httpmock/client_mock.go -pkg httpmock . Client
+package http
 
 import (
 	"context"
 	"fmt"
 	"io"
 	"math/rand"
-	"net/http"
+	gohttp "net/http"
 	"time"
 )
 
-var (
-	// Unused but keep for now. Banks have ancient systems, SEB used this encoding previously, which was painful to fix.
-	DecoderWindows1252 Decoder = func(runes []byte) (str string) { //nolint: gochecknoglobals
-		for _, r := range runes {
-			str += string(r)
-		}
-		return
-	}
-	DecoderUtf8 Decoder = func(runes []byte) string { //nolint: gochecknoglobals
-		return string(runes)
-	}
-)
-
-type Decoder func([]byte) string
-
-// BrowserInfo contains User-Agent and Sec-Ch-Ua headers that must have matching versions.
-type BrowserInfo struct {
-	UserAgent string
-	SecChUa   string
+// Client defines the interface for HTTP content fetching.
+type Client interface {
+	// Fetch retrieves content from a URL with optional custom headers.
+	// Response body is decoded as UTF-8.
+	Fetch(url string, headers map[string]string) (string, error)
 }
 
-func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]string) (string, error) {
-	client := http.Client{Timeout: 30 * time.Second}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+// client implements the Client interface using standard net/http.
+type client struct {
+	httpClient *gohttp.Client
+	timeout    time.Duration
+}
+
+// NewClient creates a new Client wrapping the provided http.Client.
+//
+//nolint:ireturn // Intentionally returns interface for testability with mocks.
+func NewClient(httpClient *gohttp.Client, timeout time.Duration) Client {
+	return &client{
+		httpClient: httpClient,
+		timeout:    timeout,
+	}
+}
+
+// Fetch retrieves content from a URL with optional custom headers.
+func (c *client) Fetch(url string, headers map[string]string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := gohttp.NewRequestWithContext(ctx, gohttp.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -60,11 +58,11 @@ func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]stri
 		req.Header.Set(key, value)
 	}
 
-	for key, value := range headers { // overwrites default headers if same key
+	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
 
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to perform request: %w", err)
 	}
@@ -75,16 +73,20 @@ func FetchRawContentFromURL(url string, decoder Decoder, headers map[string]stri
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return decoder(body), nil
+	return string(body), nil
+}
+
+// browserInfo contains User-Agent and Sec-Ch-Ua headers that must have matching versions.
+type browserInfo struct {
+	UserAgent string
+	SecChUa   string
 }
 
 // randomBrowserInfo generates matching User-Agent and Sec-Ch-Ua headers.
-// The Chrome/Chromium/Brave versions are kept in sync between both headers.
-func randomBrowserInfo() BrowserInfo {
-	// Chrome/Chromium version range (recent versions)
+// #nosec G404 // not used in security context, no strong randomness needed
+func randomBrowserInfo() browserInfo {
 	majorVersion := rand.Intn(25) + 120 // Version 120-144
 
-	// Platform for User-Agent
 	platforms := []struct {
 		uaPlatform string
 		generator  func() string
@@ -96,7 +98,7 @@ func randomBrowserInfo() BrowserInfo {
 		{
 			uaPlatform: "Macintosh",
 			generator: func() string {
-				macMajor := rand.Intn(3) + 13 // macOS 13-15
+				macMajor := rand.Intn(3) + 13
 				macMinor := rand.Intn(10)
 				macPatch := rand.Intn(10)
 				return fmt.Sprintf("Macintosh; Intel Mac OS X %d_%d_%d", macMajor, macMinor, macPatch)
@@ -107,7 +109,6 @@ func randomBrowserInfo() BrowserInfo {
 	platformInfo := platforms[rand.Intn(len(platforms))]
 	platform := platformInfo.generator()
 
-	// Build User-Agent (Chrome-based)
 	minorVersion := rand.Intn(10)
 	patchVersion := rand.Intn(1000)
 	userAgent := fmt.Sprintf(
@@ -115,14 +116,12 @@ func randomBrowserInfo() BrowserInfo {
 		platform, majorVersion, minorVersion, patchVersion,
 	)
 
-	// Build matching Sec-Ch-Ua header
-	// Format: "Chromium";v="VERSION", "Brave";v="VERSION", "Not_A Brand";v="99"
 	secChUa := fmt.Sprintf(
 		`"Chromium";v="%d", "Brave";v="%d", "Not_A Brand";v="99"`,
 		majorVersion, majorVersion,
 	)
 
-	return BrowserInfo{
+	return browserInfo{
 		UserAgent: userAgent,
 		SecChUa:   secChUa,
 	}
