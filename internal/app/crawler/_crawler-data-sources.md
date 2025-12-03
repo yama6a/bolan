@@ -6,12 +6,13 @@ This document describes the data sources and HTTP requests for each bank crawler
 
 ## Overview
 
-| Bank | Data Sources | Rate Types | Auth Required | Min Headers |
-|------|-------------|------------|---------------|-------------|
-| SEB | 2 JSON APIs | List + Average | Yes (API key + Referer) | X-API-Key, Referer |
-| Nordea | 2 HTML pages | List + Average | No | User-Agent |
-| ICA Banken | 1 HTML page | List + Average | No | Full browser headers* |
-| Danske Bank | 1 HTML page | List + Average | No | User-Agent |
+| Bank          | Data Sources | Rate Types     | Auth Required           | Min Headers           |
+|---------------|--------------|----------------|-------------------------|-----------------------|
+| SEB           | 2 JSON APIs  | List + Average | Yes (API key + Referer) | X-API-Key, Referer    |
+| Nordea        | 2 HTML pages | List + Average | No                      | User-Agent            |
+| ICA Banken    | 1 HTML page  | List + Average | No                      | Full browser headers* |
+| Danske Bank   | 1 HTML page  | List + Average | No                      | User-Agent            |
+| Handelsbanken | 2 JSON APIs  | List + Average | No                      | User-Agent            |
 
 \* ICA Banken requires matching `User-Agent` and `Sec-Ch-Ua` headers (Chrome version must match in both)
 
@@ -46,6 +47,7 @@ Example match: `AIzaSyACwKNIkAVff9Eh_lfX8yhAPiBRiawuYbU`
 ### Step 3: Fetch List Rates API
 
 **Required headers:**
+
 - `X-API-Key` - extracted from JS bundle (required, 401 without)
 - `Referer` - must be `https://pricing-portal-web-public.clouda.sebgroup.com/` (required, 403 without)
 - `Origin` - optional (works without)
@@ -58,10 +60,12 @@ curl -s 'https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/l
 ```
 
 **Error responses:**
+
 - Missing X-API-Key: `{"code":401,"message":"UNAUTHENTICATED: Method doesn't allow unregistered callers..."}`
 - Missing Referer: `{"message":"PERMISSION_DENIED: Referer blocked.","code":403}`
 
 **Response format (JSON array):**
+
 ```json
 [
   {
@@ -80,6 +84,7 @@ curl -s 'https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/l
 ```
 
 **Fields:**
+
 - `adjustmentTerm`: Term identifier (3mo, 1yr, 2yr, 3yr, 5yr, 7yr, 10yr)
 - `change`: Rate change from previous
 - `startDate`: ISO 8601 date when rate became effective
@@ -95,6 +100,7 @@ curl -s 'https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/a
 ```
 
 **Response format (JSON array):**
+
 ```json
 [
   {
@@ -114,9 +120,10 @@ curl -s 'https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/a
 ```
 
 **Fields:**
+
 - `period`: Year and month in YYMM format (e.g., 2510 = October 2025)
 - `rates`: Map of term to average rate
-  - `tot` is total/aggregate and is skipped by the crawler
+    - `tot` is total/aggregate and is skipped by the crawler
 
 ---
 
@@ -127,6 +134,7 @@ Nordea uses two separate HTML pages - one for list rates and one for average rat
 ### List Rates
 
 **Minimal working request:**
+
 ```bash
 curl -s 'https://www.nordea.se/privat/produkter/bolan/listrantor.html' \
   -H 'User-Agent: Mozilla/5.0'
@@ -141,15 +149,18 @@ curl -s 'https://www.nordea.se/privat/produkter/bolan/listrantor.html' \
 | 1 år | 3,44 % | -0,20 | 2025-07-10 |
 
 **Data formats:**
+
 - Term: Swedish format (3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 8 år)
 - Rate: Swedish decimal format with comma (3,33 %)
 - Date: YYYY-MM-DD
 
-**Note:** Nordea has 7 standard terms (includes 8 år, does NOT have 7 år or 10 år). The page also shows 16 år and 18 år which are not parsed.
+**Note:** Nordea has 7 standard terms (includes 8 år, does NOT have 7 år or 10 år). The page also shows 16 år and 18 år
+which are not parsed.
 
 ### Average Rates
 
 **Minimal working request:**
+
 ```bash
 curl -s 'https://www.nordea.se/privat/produkter/bolan/snittrantor.html' \
   -H 'User-Agent: Mozilla/5.0'
@@ -167,9 +178,11 @@ ICA Banken uses a single HTML page containing both list rates and average rates.
 
 ### Fetch Page
 
-ICA Banken has bot protection that checks for matching `User-Agent` and `Sec-Ch-Ua` headers. The Chrome version in both headers must match.
+ICA Banken has bot protection that checks for matching `User-Agent` and `Sec-Ch-Ua` headers. The Chrome version in both
+headers must match.
 
 **Required headers:**
+
 - `User-Agent` - Chrome browser user agent with version number
 - `Sec-Ch-Ua` - Client hints header with **matching** Chrome version
 - `Accept`, `Accept-Language`, `Connection`, `Cache-Control` - Standard browser headers
@@ -197,6 +210,7 @@ curl -s 'https://www.icabanken.se/lana/bolan/bolanerantor/' \
 | 1 år | 3,44 % | 2025-07-10 |
 
 **Data formats:**
+
 - Term: Swedish format (3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 7 år, 10 år)
 - Rate: Swedish decimal format with comma (3,33 %)
 - Date: YYYY-MM-DD
@@ -212,6 +226,7 @@ curl -s 'https://www.icabanken.se/lana/bolan/bolanerantor/' \
 | 2025 10 | 2,68 | 2,92 | 2,93 | 3,00 | 3,10 | 3,19 | - | 3,57 |
 
 **Data formats:**
+
 - Month: "YYYY MM" format with space (e.g., "2025 11" = November 2025)
 - Rate: Swedish decimal format with comma
 - Missing data indicated by "-" or "-*"
@@ -225,6 +240,7 @@ Danske Bank uses a single HTML page containing both list rates and average rates
 ### Fetch Page
 
 **Minimal working request:**
+
 ```bash
 curl -s 'https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolanerantor' \
   -H 'User-Agent: Mozilla/5.0'
@@ -232,7 +248,8 @@ curl -s 'https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolaner
 
 ### List Rates Table
 
-**Table identifier:** Search for text "Läs mer om listräntor" before the table, then skip 1 table (first is empty style table)
+**Table identifier:** Search for text "Läs mer om listräntor" before the table, then skip 1 table (first is empty style
+table)
 
 **Table structure (4 columns):**
 | Bindningstid | Ändrad | Förändring | Listränta |
@@ -240,6 +257,7 @@ curl -s 'https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolaner
 | 3 mån | 2025-10-06 | -0,20 | 3.33% |
 
 **Data formats:**
+
 - Term: Swedish format
 - Date: YYYY-MM-DD
 - Rate: Decimal with dot (3.33%)
@@ -254,10 +272,85 @@ curl -s 'https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolaner
 | Augusti 2021 | 1,23 | 1,44 | 1,66 | ... |
 
 **Data formats:**
+
 - Month: Swedish month name with year (e.g., "Augusti 2021", "Feb 1955")
 - Rate: Swedish decimal format with comma
 
-**Note:** Danske Bank has inconsistent HTML table formatting where some rows are split across multiple `<tr>` elements. The crawler handles this by detecting rows with only a month name and merging with the following row.
+**Note:** Danske Bank has inconsistent HTML table formatting where some rows are split across multiple `<tr>` elements.
+The crawler handles this by detecting rows with only a month name and merging with the following row.
+
+---
+
+## Handelsbanken
+
+Handelsbanken uses clean JSON APIs for both list rates and average rates. No authentication required.
+
+### List Rates API
+
+**Minimal working request:**
+
+```bash
+curl -s 'https://www.handelsbanken.se/tron/slana/slan/service/mortgagerates/v1/interestrates' \
+  -H 'User-Agent: Mozilla/5.0'
+```
+
+**Response format (JSON):**
+
+```json
+{
+  "interestRates": [
+    {
+      "effectiveRateValue": {"value": "3,91", "valueRaw": 3.91},
+      "periodBasisType": "3",
+      "rateValue": {"value": "3,84", "valueRaw": 3.84},
+      "term": "3"
+    },
+    {
+      "effectiveRateValue": {"value": "3,50", "valueRaw": 3.50},
+      "periodBasisType": "4",
+      "rateValue": {"value": "3,44", "valueRaw": 3.44},
+      "term": "1"
+    }
+  ]
+}
+```
+
+**Fields:**
+
+- `periodBasisType`: "3" = months, "4" = years
+- `term`: Number of months or years (depending on periodBasisType)
+- `rateValue.valueRaw`: Nominal rate (percentage)
+- `effectiveRateValue.valueRaw`: Effective rate (percentage)
+
+**Terms Available:** 3 mån, 1 år, 2 år, 3 år, 5 år, 8 år, 10 år (note: 8 år instead of 7 år)
+
+### Average Rates API
+
+```bash
+curl -s 'https://www.handelsbanken.se/tron/slana/slan/service/mortgagerates/v1/averagerates' \
+  -H 'User-Agent: Mozilla/5.0'
+```
+
+**Response format (JSON):**
+
+```json
+{
+  "averageRatePeriods": [
+    {
+      "period": "202412",
+      "rates": [
+        {"periodBasisType": "3", "rateValue": {"value": "3,52", "valueRaw": 3.52}, "term": "3"},
+        {"periodBasisType": "4", "rateValue": {"value": "3,13", "valueRaw": 3.13}, "term": "1"}
+      ]
+    }
+  ]
+}
+```
+
+**Fields:**
+
+- `period`: Year and month in YYYYMM format (e.g., 202412 = December 2024)
+- `rates`: Array of rates per term (same structure as list rates)
 
 ---
 
@@ -275,6 +368,7 @@ Sec-Ch-Ua: "Chromium";v="125", "Brave";v="125", "Not_A Brand";v="99"
 ```
 
 **Randomized values:**
+
 - Chrome version: 120-144
 - Mac OS version: 13.x.x - 15.x.x
 - Minor/patch versions for Chrome and OS
@@ -285,19 +379,19 @@ Sec-Ch-Ua: "Chromium";v="125", "Brave";v="125", "Not_A Brand";v="99"
 
 All banks use Swedish terms that are parsed to internal term codes:
 
-| Swedish | Internal Code | Duration |
-|---------|---------------|----------|
-| 3 mån / 3mo | 3m | 3 months |
-| 1 år / 1yr | 1y | 1 year |
-| 2 år / 2yr | 2y | 2 years |
-| 3 år / 3yr | 3y | 3 years |
-| 4 år / 4yr | 4y | 4 years |
-| 5 år / 5yr | 5y | 5 years |
-| 6 år / 6yr | 6y | 6 years |
-| 7 år / 7yr | 7y | 7 years |
-| 8 år / 8yr | 8y | 8 years |
-| 9 år / 9yr | 9y | 9 years |
-| 10 år / 10yr | 10y | 10 years |
+| Swedish      | Internal Code | Duration |
+|--------------|---------------|----------|
+| 3 mån / 3mo  | 3m            | 3 months |
+| 1 år / 1yr   | 1y            | 1 year   |
+| 2 år / 2yr   | 2y            | 2 years  |
+| 3 år / 3yr   | 3y            | 3 years  |
+| 4 år / 4yr   | 4y            | 4 years  |
+| 5 år / 5yr   | 5y            | 5 years  |
+| 6 år / 6yr   | 6y            | 6 years  |
+| 7 år / 7yr   | 7y            | 7 years  |
+| 8 år / 8yr   | 8y            | 8 years  |
+| 9 år / 9yr   | 9y            | 9 years  |
+| 10 år / 10yr | 10y           | 10 years |
 
 ---
 
@@ -305,14 +399,16 @@ All banks use Swedish terms that are parsed to internal term codes:
 
 Each crawler has golden file tests in `internal/app/crawler/testdata/`:
 
-| Bank | Test Files |
-|------|------------|
-| SEB | `seb_page.html`, `seb_main.js`, `seb_list_rates.json`, `seb_avg_rates.json` |
-| Nordea | `nordea_list_rates.html`, `nordea_avg_rates.html` |
-| ICA Banken | `ica_banken.html` |
-| Danske Bank | `danske_bank.html` |
+| Bank          | Test Files                                                                  |
+|---------------|-----------------------------------------------------------------------------|
+| SEB           | `seb_page.html`, `seb_main.js`, `seb_list_rates.json`, `seb_avg_rates.json` |
+| Nordea        | `nordea_list_rates.html`, `nordea_avg_rates.html`                           |
+| ICA Banken    | `ica_banken.html`                                                           |
+| Danske Bank   | `danske_bank.html`                                                          |
+| Handelsbanken | `handelsbanken_list_rates.json`, `handelsbanken_avg_rates.json`             |
 
 Run tests with:
+
 ```bash
 go test ./internal/app/crawler/...
 ```
@@ -322,6 +418,7 @@ go test ./internal/app/crawler/...
 To update golden files with fresh data:
 
 **SEB:**
+
 ```bash
 # Get JS filename
 JS_FILE=$(curl -s 'https://pricing-portal-web-public.clouda.sebgroup.com/mortgage/averageratehistoric' \
@@ -344,6 +441,7 @@ curl -s 'https://pricing-portal-api-public.clouda.sebgroup.com/public/mortgage/a
 ```
 
 **Nordea:**
+
 ```bash
 curl -s 'https://www.nordea.se/privat/produkter/bolan/listrantor.html' \
   -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/nordea_list_rates.html
@@ -353,12 +451,14 @@ curl -s 'https://www.nordea.se/privat/produkter/bolan/snittrantor.html' \
 ```
 
 **Danske Bank:**
+
 ```bash
 curl -s 'https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolanerantor' \
   -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/danske_bank.html
 ```
 
 **ICA Banken:**
+
 ```bash
 curl -s 'https://www.icabanken.se/lana/bolan/bolanerantor/' \
   -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.847 Safari/537.36' \
@@ -368,4 +468,14 @@ curl -s 'https://www.icabanken.se/lana/bolan/bolanerantor/' \
   -H 'Connection: keep-alive' \
   -H 'Cache-Control: no-cache' \
   > internal/app/crawler/testdata/ica_banken.html
+```
+
+**Handelsbanken:**
+
+```bash
+curl -s 'https://www.handelsbanken.se/tron/slana/slan/service/mortgagerates/v1/interestrates' \
+  -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/handelsbanken_list_rates.json
+
+curl -s 'https://www.handelsbanken.se/tron/slana/slan/service/mortgagerates/v1/averagerates' \
+  -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/handelsbanken_avg_rates.json
 ```

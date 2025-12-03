@@ -15,7 +15,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 1 | Avanza Bank | avanza.se | To Add | Superbolånet product, variable rate only (2.01-2.25%) |
 | 2 | Bluestep/Enity Bank Group | bluestep.se | To Add | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
 | 3 | Danske Bank | danskebank.se | **Done** | Full term range |
-| 4 | Handelsbanken | handelsbanken.se | To Add | Big Four, full term range |
+| 4 | Handelsbanken | handelsbanken.se | **Done** | Big Four, full term range |
 | 5 | Hypoteket | hypoteket.com | To Add | Digital-first, data currently missing on Konsumenternas |
 | 6 | ICA Banken | icabanken.se | **Done** | Full term range |
 | 7 | Ikano Bank | ikanobank.se | To Add | Uses Borgo, full term range |
@@ -40,7 +40,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Bank | Market Share | Status |
 |------|--------------|--------|
 | Swedbank | ~25% | To Add |
-| Handelsbanken | ~24% | To Add |
+| Handelsbanken | ~24% | **Done** |
 | SEB | ~15% | **Done** |
 | Nordea | ~14% | **Done** |
 
@@ -161,8 +161,8 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ## Summary
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 4 (Danske Bank, SEB, ICA Banken, Nordea)
-- **Remaining to add**: 17
+- **Already implemented**: 5 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken)
+- **Remaining to add**: 16
 
 ---
 
