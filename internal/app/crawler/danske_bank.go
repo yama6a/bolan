@@ -245,7 +245,7 @@ func (c *DanskeBankCrawler) sanitizeAvgRows(table utils.Table) utils.Table {
 func parseDanskeBankChangeDate(data string) (time.Time, error) {
 	matches := changedDateRegex.FindStringSubmatch(data)
 	if len(matches) != 4 {
-		return time.Time{}, utils.ErrUnsupportedChangeDate
+		return time.Time{}, fmt.Errorf("failed to match change date regex")
 	}
 
 	year, err := strconv.Atoi(matches[1])
@@ -284,7 +284,7 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 
 	parts := strings.Fields(data)
 	if len(parts) < 2 {
-		return model.AvgMonth{}, utils.ErrUnsupportedAvgMonth
+		return model.AvgMonth{}, fmt.Errorf("failed to split reference month into parts: %s", data)
 	}
 
 	var month time.Month
@@ -296,7 +296,7 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 		}
 	}
 	if month == 0 {
-		return model.AvgMonth{}, fmt.Errorf("failed to parse month: %w", utils.ErrUnsupportedAvgMonth)
+		return model.AvgMonth{}, fmt.Errorf("failed to parse month: %s", parts)
 	}
 
 	yearInt, err := strconv.Atoi(parts[1])
@@ -304,7 +304,7 @@ func (c *DanskeBankCrawler) parseReferenceMonth(data string) (model.AvgMonth, er
 		return model.AvgMonth{}, fmt.Errorf("failed to parse year: %w", err)
 	}
 	if yearInt < 1940 || yearInt > 2100 {
-		return model.AvgMonth{}, fmt.Errorf("year out of range: %w", utils.ErrUnsupportedAvgMonth)
+		return model.AvgMonth{}, fmt.Errorf("year out of range: %d", yearInt)
 	}
 
 	return model.AvgMonth{
@@ -320,7 +320,7 @@ func parseNominalRate(data string) (float32, error) {
 
 	matches := interestRegex.FindStringSubmatch(data)
 	if len(matches) != 2 {
-		return 0, utils.ErrUnsupportedInterestRate
+		return 0, fmt.Errorf("failed to match interest rate regex")
 	}
 
 	rate, err := strconv.ParseFloat(matches[1], 32)

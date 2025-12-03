@@ -2,10 +2,14 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 )
+
+var ErrTermHeader = errors.New("row is a term header row")
 
 func NormalizeSpaces(str string) string {
 	str = strings.ReplaceAll(str, "&nbsp;", " ") // html non-breaking space
@@ -62,5 +66,5 @@ func ParseTerm(data string) (model.Term, error) {
 		return model.Term10years, nil
 	}
 
-	return "", ErrUnsupportedTerm
+	return "", fmt.Errorf("could not parse term: %s", data)
 }

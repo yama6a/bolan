@@ -205,7 +205,7 @@ func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) (
 func parseReferenceMonth(data uint, regex *regexp.Regexp) (model.AvgMonth, error) {
 	matches := regex.FindStringSubmatch(fmt.Sprintf("%d", data))
 	if len(matches) != 3 {
-		return model.AvgMonth{}, utils.ErrUnsupportedAvgMonth
+		return model.AvgMonth{}, fmt.Errorf("failed to match reference month: %d", data)
 	}
 
 	year, err := strconv.Atoi(matches[1])
@@ -238,7 +238,7 @@ func parseSEBChangeDate(str string, regex *regexp.Regexp) (time.Time, error) {
 
 	matches := regex.FindStringSubmatch(str)
 	if len(matches) != 5 {
-		return time.Time{}, utils.ErrUnsupportedChangeDate
+		return time.Time{}, fmt.Errorf("failed to match change date")
 	}
 
 	date, err := time.Parse("2006-01-02", matches[1])
