@@ -1,0 +1,44 @@
+[
+  {
+    "adjustmentTerm": "3mo",
+    "change": -0.20,
+    "startDate": "2025-09-25T04:00:00Z",
+    "value": 3.84
+  },
+  {
+    "adjustmentTerm": "1yr",
+    "change": -0.20,
+    "startDate": "2025-07-10T04:00:00Z",
+    "value": 3.44
+  },
+  {
+    "adjustmentTerm": "2yr",
+    "change": -0.10,
+    "startDate": "2025-07-10T04:00:00Z",
+    "value": 3.39
+  },
+  {
+    "adjustmentTerm": "3yr",
+    "change": -0.10,
+    "startDate": "2025-07-10T04:00:00Z",
+    "value": 3.49
+  },
+  {
+    "adjustmentTerm": "5yr",
+    "change": 0.20,
+    "startDate": "2025-03-26T05:00:00Z",
+    "value": 3.79
+  },
+  {
+    "adjustmentTerm": "7yr",
+    "change": 0.20,
+    "startDate": "2025-03-26T05:00:00Z",
+    "value": 3.94
+  },
+  {
+    "adjustmentTerm": "10yr",
+    "change": 0.30,
+    "startDate": "2025-03-26T05:00:00Z",
+    "value": 4.09
+  }
+]
