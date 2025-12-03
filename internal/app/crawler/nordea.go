@@ -37,6 +37,7 @@ func NewNordeaCrawler(httpClient http.Client, logger *zap.Logger) *NordeaCrawler
 	return &NordeaCrawler{httpClient: httpClient, logger: logger}
 }
 
+//nolint:dupl // Crawl pattern intentionally similar across crawlers
 func (c *NordeaCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 

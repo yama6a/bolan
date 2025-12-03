@@ -40,9 +40,9 @@ func ParseTerm(data string) (model.Term, error) {
 	str = strings.ReplaceAll(str, " ", "")
 
 	switch {
-	case strings.Contains(str, "genomsnittlig"), strings.Contains(str, "bindningstid"), strings.Contains(str, "månad"), str == "tot":
+	case strings.Contains(str, "genomsnittlig"), strings.Contains(str, "bindningstid"), str == "månad", str == "tot":
 		return "", ErrTermHeader
-	case strings.Contains(str, "3mån"), strings.Contains(str, "3mo"):
+	case strings.Contains(str, "3mån"), strings.Contains(str, "3mo"), strings.Contains(str, "3månader"):
 		return model.Term3months, nil
 	case strings.Contains(str, "1år"), strings.Contains(str, "1yr"):
 		return model.Term1year, nil

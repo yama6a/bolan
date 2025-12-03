@@ -41,294 +41,68 @@ If `make ci` fails, fix all reported issues before continuing to the next task.
 
 ## Adding a New Bank Crawler
 
-### 1. Create crawler file
-Create `internal/app/crawler/{bank_name}.go`. Follow existing pattern:
-```go
-package crawler
+When adding a new bank crawler, the following files must be created or modified:
 
-type BankNameCrawler struct {
-    httpClient http.Client  // Dependency injected
-    logger     *zap.Logger
-}
+### Files to Create
+1. `internal/app/crawler/{bank_name}.go` - Crawler implementation
+2. `internal/app/crawler/{bank_name}_test.go` - Tests
+3. `internal/app/crawler/testdata/{bank_name}.html` (or `.json`) - Golden file(s)
 
-var _ SiteCrawler = &BankNameCrawler{}  // Interface compliance check
+### Files to Modify
+4. `cmd/crawler/main.go` - Register the new crawler
+5. `crawler-plan.md` - Update bank status to "Done"
+6. `internal/app/crawler/_crawler-data-sources.md` - Document URLs, headers, and data formats
 
-func NewBankNameCrawler(httpClient http.Client, logger *zap.Logger) *BankNameCrawler {
-    return &BankNameCrawler{httpClient: httpClient, logger: logger}
-}
+### Implementation Pattern
+- Inject `http.Client` and `*zap.Logger` via constructor
+- Add interface compliance check: `var _ SiteCrawler = &BankNameCrawler{}`
+- Prefer HTTP over Playwright - only use Playwright for exploration
+- If HTTP doesn't work, document the reason in `crawler-plan.md`
 
-func (c *BankNameCrawler) Crawl(channel chan<- model.InterestSet) {
-    // Fetch HTML/JSON using injected client, parse, send results to channel
-    html, err := c.httpClient.Fetch(url, nil)
-}
-```
+### Testing Pattern
+- Use golden files (real HTML/JSON from bank websites) for deterministic tests
+- Mock HTTP client using `httpmock.ClientMock`
+- Test extraction methods, parsing functions, and edge cases
 
-### 2. Register in main.go
-Add to `cmd/crawler/main.go`:
-```go
-// httpClient is already instantiated as singleton in main()
-crawlers := []crawler.SiteCrawler{
-    crawler.NewBankNameCrawler(httpClient, logger.Named("bank-name-crawler")),
-}
-```
+## HTML Table Parsing
 
-### 3. Prefer HTTP over Playwright
-Always try basic `net/http` first via the injected `http.Client`:
-```go
-html, err := c.httpClient.Fetch(url, nil)
-```
-Only use Playwright when planning/exploring the banks' websites. If you cannot fetch the required data with HTTP, document the reason in `crawler-plan.md`.
+### Locating Tables
+Three utility functions for locating tables in HTML:
+- `utils.FindTokenizedTableByTextBeforeTable(html, text)` - Find first table after text appears
+- `utils.FindTokenizedNthTableByTextBeforeTable(html, text, skip)` - Find Nth table after text (0-indexed)
+- `utils.FindTokenizedTableByTextInCaption(html, text)` - Find table by `<caption>` element content
 
-## HTML Table Parsing Pattern
-Use `utils.FindTokenizedTableByTextBeforeTable()` to locate tables:
-```go
-tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Aktuella bolåneräntor")
-if err != nil {
-    return nil, fmt.Errorf("failed to find table: %w", err)
-}
+### Parsing Tables
+Use `utils.ParseTable(tokenizer)` after locating a table. Returns a `utils.Table` struct:
+- `Table.Header` - First row as `[]string`
+- `Table.Rows` - Remaining rows as `[][]string`
 
-table, err := utils.ParseTable(tokenizer)
-// table.Header = []string{"Bindningstid", "Ränta", ...}
-// table.Rows = [][]string{{"3 mån", "3,45 %", ...}, ...}
-```
+### Term and Rate Parsing
+- `utils.ParseTerm(str)` - Parses Swedish terms like "3 mån", "3 månader", "1 år" to `model.Term`
+- Rate parsing is bank-specific (handle Swedish decimal comma, percent signs, dashes for empty values)
 
 ## JSON API Pattern
-For banks with JSON APIs:
-```go
-type RatesResponse struct {
-    Rates []struct {
-        Period string  `json:"period"`
-        Rate   float64 `json:"rate"`
-    } `json:"rates"`
-}
 
-body, err := c.httpClient.Fetch(apiURL, nil)
-var resp RatesResponse
-if err := json.Unmarshal([]byte(body), &resp); err != nil { ... }
-```
+For banks with JSON APIs, use `c.httpClient.Fetch()` and `json.Unmarshal()`.
 
 ## Dependency Injection
 
-### Singletons
-All shared dependencies (including nested dependencies) are instantiated in `cmd/crawler/main.go`:
-```go
-import (
-    gohttp "net/http"
-    "github.com/yama6a/bolan-compare/internal/pkg/http"
-)
-
-httpTimeout := 30 * time.Second
-baseHTTPClient := &gohttp.Client{
-    Timeout: httpTimeout,
-    CheckRedirect: func(_ *gohttp.Request, _ []*gohttp.Request) error {
-        return gohttp.ErrUseLastResponse
-    },
-}
-httpClient := http.NewClient(baseHTTPClient, httpTimeout)
-```
-**Rule**: Packages must not instantiate their own dependencies internally. All `New*()` constructors receive dependencies as parameters.
-
-### Interfaces with Mocks
-Dependencies expose interfaces for testability. Generate mocks with:
-```bash
-go generate ./internal/pkg/http/...
-# Or manually: moq -out internal/pkg/http/httpmock/client_mock.go -pkg httpmock . Client
-```
-
-Use mocks in tests:
-```go
-mockClient := &httpmock.ClientMock{
-    FetchFunc: func(url string, headers map[string]string) (string, error) {
-        return `<html>...</html>`, nil
-    },
-}
-crawler := NewBankNameCrawler(mockClient, logger)
-```
-
-## Testing with Golden Files
-
-### Overview
-Golden file testing stores real website HTML in `testdata/` directories for deterministic testing. This approach:
-- Captures real-world HTML structure for accurate parsing tests
-- Eliminates network dependency during tests
-- Provides reproducible test fixtures
-
-### Directory Structure
-```
-internal/app/crawler/
-├── danske_bank.go
-├── danske_bank_test.go
-└── testdata/
-    └── danske_bank.html    # Real HTML from bank website
-```
-
-### Creating a Golden File
-Fetch real HTML using curl with a browser User-Agent:
-```bash
-curl -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
-    "https://bank.example.com/rates" > internal/app/crawler/testdata/bank_name.html
-```
-
-### Test Helper Pattern
-```go
-func loadGoldenFile(t *testing.T, filename string) string {
-    t.Helper()
-    data, err := os.ReadFile(filename)
-    if err != nil {
-        t.Fatalf("failed to load golden file %s: %v", filename, err)
-    }
-    return string(data)
-}
-```
-
-### Using Golden Files in Tests
-```go
-func TestBankCrawler_Crawl(t *testing.T) {
-    t.Parallel()
-    goldenHTML := loadGoldenFile(t, "testdata/bank_name.html")
-
-    mockClient := &httpmock.ClientMock{
-        FetchFunc: func(url string, headers map[string]string) (string, error) {
-            return goldenHTML, nil
-        },
-    }
-
-    crawler := NewBankNameCrawler(mockClient, zap.NewNop())
-    ch := make(chan model.InterestSet, 100)
-    crawler.Crawl(ch)
-    close(ch)
-
-    var results []model.InterestSet
-    for r := range ch {
-        results = append(results, r)
-    }
-    // Assert expected results...
-}
-```
-
-### Reducing Test Complexity
-Extract helper functions to keep cyclomatic complexity under 10:
-```go
-// countRatesByType counts list rates and average rates from results.
-func countRatesByType(results []model.InterestSet) (listCount, avgCount int) {
-    for _, r := range results {
-        switch r.Type {
-        case model.TypeListRate:
-            listCount++
-        case model.TypeAverageRate:
-            avgCount++
-        case model.TypeRatioDiscounted, model.TypeUnionDiscounted:
-            // Not counted in this helper
-        }
-    }
-    return listCount, avgCount
-}
-
-// assertBankName verifies all results have the expected bank name.
-func assertBankName(t *testing.T, results []model.InterestSet, wantBank model.Bank) {
-    t.Helper()
-    for _, r := range results {
-        if r.Bank != wantBank {
-            t.Errorf("bank = %q, want %q", r.Bank, wantBank)
-        }
-    }
-}
-```
-
-### Test Categories
-Each crawler should have tests for:
-1. **Integration test**: `TestBankCrawler_Crawl` - Full crawl with mocked HTTP
-2. **Extract methods**: `TestBankCrawler_extractListRates`, `TestBankCrawler_extractAverageRates`
-3. **Parsing functions**: Date parsing, rate parsing, term parsing
-4. **Edge cases**: Empty input, malformed data, missing fields
-5. **Interface compliance**: `var _ SiteCrawler = &BankCrawler{}`
-
-### Updating Golden Files
-When a bank's website changes:
-1. Fetch fresh HTML: `curl -A "..." "url" > testdata/bank.html`
-2. Update tests to match new structure
-3. Commit both the new golden file and test updates together
-
-## Fixing Broken Crawlers
-
-### Diagnosis Steps
-1. Run crawler, check error logs
-2. Fetch URL manually: `curl -v "https://bank.example.com/rates"`
-3. If 404/changed: Use browser DevTools to find new URL
-4. If empty response: Check if JS-rendered (view-source vs rendered)
-5. If blocked: Check User-Agent requirements
-
-### Common Fixes
-- **URL changed**: Update const, verify with curl
-- **Table moved**: Update search string in `FindTokenizedTableByTextBeforeTable()`
-- **Date format changed**: Update regex pattern
-- **API endpoint changed**: Use DevTools Network tab to find new endpoint
-
-### Example: SEB URL change
-```go
-// OLD: sebAvgURL = "https://seb.se/bolan/snittrantor"
-// NEW: sebAvgURL = "https://seb.se/privat/lan/bolan/snittrantor"
-const sebAvgURL = "https://seb.se/privat/lan/bolan/snittrantor"
-```
-
-## Data Model
-
-### InterestSet Fields
-```go
-model.InterestSet{
-    Bank:          "Nordea",              // Bank name constant
-    Type:          model.TypeListRate,    // TypeListRate or TypeAverageRate
-    Term:          model.Term3months,     // Term3months, Term1year, ..., Term10years
-    NominalRate:   3.45,                  // Rate as float32 (3.45 = 3.45%)
-    ChangedOn:     &time.Time{},          // When rate changed (list rates only)
-    LastCrawledAt: time.Now().UTC(),      // Always set to crawl time
-    AverageReferenceMonth: &model.AvgMonth{Year: 2025, Month: 11}, // Avg rates only
-}
-```
-
-### Term Parsing
-Use `utils.ParseTerm()` - handles Swedish formats:
-```go
-term, err := utils.ParseTerm("3 mån")  // Returns model.Term3months
-term, err := utils.ParseTerm("1 år")   // Returns model.Term1year
-```
+All dependencies are instantiated in `cmd/crawler/main.go` and injected via constructors.
+Packages must not instantiate their own dependencies internally.
 
 ## Code Style
 
-### Naming
-- Crawler type: `{BankName}Crawler` (e.g., `NordeaCrawler`)
+### Naming Conventions
+- Crawler type: `{BankName}Crawler`
 - Constructor: `New{BankName}Crawler`
-- URL const: `{bank}URL` or `{bank}ListRatesURL`/`{bank}AvgRatesURL`
+- URL const: `{bank}ListRatesURL` / `{bank}AvgRatesURL`
 - Bank const: `{bank}BankName` of type `model.Bank`
 
-### Interface Compliance
-Always add compile-time interface checks for types that implement interfaces:
-```go
-var _ SiteCrawler = &NordeaCrawler{}  // Ensures NordeaCrawler implements SiteCrawler
-var _ Client = &client{}              // Ensures client implements Client
-```
-This catches interface mismatches at compile time rather than runtime.
-
-### Interface Location
-Define interfaces next to their implementations, not where they are injected. For example:
-- `Store` interface lives in `internal/pkg/store/` alongside `MemoryStore`
-- `Client` interface lives in `internal/pkg/http/` alongside `client`
-- `SiteCrawler` interface lives in `internal/app/crawler/` alongside crawler implementations
-
-This follows the Go proverb "accept interfaces, return structs" and keeps related code together.
-
 ### Error Handling
-Log and continue on parse errors (don't fail entire crawl):
-```go
-rate, err := parseRate(row[1])
-if err != nil {
-    c.logger.Warn("failed to parse rate", zap.String("rate", row[1]), zap.Error(err))
-    continue  // Skip this row, continue with others
-}
-```
+Log and continue on parse errors (don't fail entire crawl). Use `c.logger.Warn()` and `continue`.
 
-### Formatting
-Run `make fumpt` before committing. The linter is strict - don't add `//nolint` without good reason.
+### Interface Compliance
+Always add compile-time interface checks: `var _ SiteCrawler = &BankNameCrawler{}`
 
 ## Don'ts
 - Don't use external HTTP client libraries (use standard `net/http`)

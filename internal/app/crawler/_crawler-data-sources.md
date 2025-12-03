@@ -6,14 +6,15 @@ This document describes the data sources and HTTP requests for each bank crawler
 
 ## Overview
 
-| Bank          | Data Sources | Rate Types     | Auth Required           | Min Headers           |
-|---------------|--------------|----------------|-------------------------|-----------------------|
-| SEB           | 2 JSON APIs  | List + Average | Yes (API key + Referer) | X-API-Key, Referer    |
-| Nordea        | 2 HTML pages | List + Average | No                      | User-Agent            |
-| ICA Banken    | 1 HTML page  | List + Average | No                      | Full browser headers* |
-| Danske Bank   | 1 HTML page  | List + Average | No                      | User-Agent            |
-| Handelsbanken | 2 JSON APIs  | List + Average | No                      | User-Agent            |
-| SBAB          | 2 JSON APIs  | List + Average | No                      | User-Agent            |
+| Bank          | Data Sources | Rate Types     | Auth Required           | Min Headers            |
+|---------------|--------------|----------------|-------------------------|------------------------|
+| SEB           | 2 JSON APIs  | List + Average | Yes (API key + Referer) | X-API-Key, Referer     |
+| Nordea        | 2 HTML pages | List + Average | No                      | User-Agent             |
+| ICA Banken    | 1 HTML page  | List + Average | No                      | User-Agent, Sec-Ch-Ua* |
+| Danske Bank   | 1 HTML page  | List + Average | No                      | User-Agent             |
+| Handelsbanken | 2 JSON APIs  | List + Average | No                      | User-Agent             |
+| SBAB          | 2 JSON APIs  | List + Average | No                      | User-Agent             |
+| Swedbank      | 2 HTML pages | List + Average | No                      | User-Agent             |
 
 \* ICA Banken requires matching `User-Agent` and `Sec-Ch-Ua` headers (Chrome version must match in both)
 
@@ -301,15 +302,27 @@ curl -s 'https://www.handelsbanken.se/tron/slana/slan/service/mortgagerates/v1/i
 {
   "interestRates": [
     {
-      "effectiveRateValue": {"value": "3,91", "valueRaw": 3.91},
+      "effectiveRateValue": {
+        "value": "3,91",
+        "valueRaw": 3.91
+      },
       "periodBasisType": "3",
-      "rateValue": {"value": "3,84", "valueRaw": 3.84},
+      "rateValue": {
+        "value": "3,84",
+        "valueRaw": 3.84
+      },
       "term": "3"
     },
     {
-      "effectiveRateValue": {"value": "3,50", "valueRaw": 3.50},
+      "effectiveRateValue": {
+        "value": "3,50",
+        "valueRaw": 3.50
+      },
       "periodBasisType": "4",
-      "rateValue": {"value": "3,44", "valueRaw": 3.44},
+      "rateValue": {
+        "value": "3,44",
+        "valueRaw": 3.44
+      },
       "term": "1"
     }
   ]
@@ -340,8 +353,22 @@ curl -s 'https://www.handelsbanken.se/tron/slana/slan/service/mortgagerates/v1/a
     {
       "period": "202412",
       "rates": [
-        {"periodBasisType": "3", "rateValue": {"value": "3,52", "valueRaw": 3.52}, "term": "3"},
-        {"periodBasisType": "4", "rateValue": {"value": "3,13", "valueRaw": 3.13}, "term": "1"}
+        {
+          "periodBasisType": "3",
+          "rateValue": {
+            "value": "3,52",
+            "valueRaw": 3.52
+          },
+          "term": "3"
+        },
+        {
+          "periodBasisType": "4",
+          "rateValue": {
+            "value": "3,13",
+            "valueRaw": 3.13
+          },
+          "term": "1"
+        }
       ]
     }
   ]
@@ -431,6 +458,76 @@ curl -s 'https://www.sbab.se/api/historical-average-interest-rate-service/intere
 
 ---
 
+## Swedbank
+
+Swedbank uses two separate HTML pages - one for list rates and one for historic average rates.
+
+### List Rates
+
+**Minimal working request:**
+
+```bash
+curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor.html' \
+  -H 'User-Agent: Mozilla/5.0'
+```
+
+**Table identifier:** Search for text "Aktuella bolåneräntor – listpris" before the table
+
+**Table structure:**
+| Bindningstid | Ränta |
+|--------------|-------|
+| 3 mån | 3,05 % |
+| 1 år | 3,17 % |
+
+**Data formats:**
+
+- Term: Swedish format (3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 7 år, 10 år)
+- Rate: Swedish decimal format with comma (3,05 %)
+- Date extracted from header: "senast ändrad 25 september 2025"
+
+### Historic Average Rates
+
+**Minimal working request:**
+
+```bash
+curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor/historiska-genomsnittsrantor.html' \
+  -H 'User-Agent: Mozilla/5.0'
+```
+
+**Table identifier:** Find table by caption containing "Våra historiska genomsnittsräntor"
+
+**Table structure (transposed - months as rows, terms as columns):**
+| Bindningstid | 3 månader | 1 år | 2 år | 3 år | 4 år | 5 år | 7 år | 10 år | Banklån* |
+|--------------|-----------|------|------|------|------|------|------|-------|----------|
+| nov. 2025 | 2,65 | 2,84 | 2,84 | 2,90 | 2,99 | 3,07 | 3,34 | 3,30 | 4,88 |
+| okt. 2025 | 2,68 | 2,92 | 2,93 | 3,00 | 3,10 | 3,19 | 3,50 | 3,57 | 4,98 |
+
+**Data formats:**
+
+- Month: Abbreviated Swedish month with period + year (e.g., "nov. 2025", "okt. 2025")
+- Rate: Swedish decimal format with comma
+- Missing data: "-" or empty
+- Banklån* row is skipped (not a standard term)
+
+**Month abbreviations:**
+
+| Abbreviation | Full Name | Month |
+|--------------|-----------|-------|
+| jan. | januari | January |
+| feb. | februari | February |
+| mar. | mars | March |
+| apr. | april | April |
+| maj | maj | May |
+| jun. | juni | June |
+| jul. | juli | July |
+| aug. | augusti | August |
+| sep. | september | September |
+| okt. | oktober | October |
+| nov. | november | November |
+| dec. | december | December |
+
+---
+
 ## Common Headers
 
 The Go HTTP client uses these headers (with randomization):
@@ -484,6 +581,7 @@ Each crawler has golden file tests in `internal/app/crawler/testdata/`:
 | Danske Bank   | `danske_bank.html`                                                          |
 | Handelsbanken | `handelsbanken_list_rates.json`, `handelsbanken_avg_rates.json`             |
 | SBAB          | `sbab_list_rates.json`, `sbab_avg_rates.json`                               |
+| Swedbank      | `swedbank.html`, `swedbank_historic.html`                                   |
 
 Run tests with:
 
@@ -566,4 +664,14 @@ curl -s 'https://www.sbab.se/api/interest-mortgage-service/api/external/v1/inter
 
 curl -s 'https://www.sbab.se/api/historical-average-interest-rate-service/interest-rate/average-interest-rate-last-twelve-months-by-period' \
   -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/sbab_avg_rates.json
+```
+
+**Swedbank:**
+
+```bash
+curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor.html' \
+  -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/swedbank.html
+
+curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor/historiska-genomsnittsrantor.html' \
+  -H 'User-Agent: Mozilla/5.0' > internal/app/crawler/testdata/swedbank_historic.html
 ```

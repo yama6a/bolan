@@ -6,6 +6,8 @@
 - [x] ICA Banken
 - [x] Nordea
 - [x] SBAB
+- [x] Handelsbanken
+- [x] Swedbank
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -32,7 +34,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 17 | Skandiabanken | skandiabanken.se | To Add | Insurance bank, terms up to 5 år |
 | 18 | Stabelo | stabelo.se | To Add | Also via Avanza/Bolån+ and Nordnet, data currently missing |
 | 19 | Svea Bank | svea.com | To Add | Specialty lender, variable rate only (from 5.65%) |
-| 20 | Swedbank | swedbank.se | To Add | Big Four, largest market share (~25%), full term range |
+| 20 | Swedbank | swedbank.se | **Done** | Big Four, largest market share (~25%), full term range |
 | 21 | Ålandsbanken | alandsbanken.se | To Add | Finnish bank in Sweden, full term range |
 
 ## Banks by Category
@@ -40,7 +42,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 ### Big Four (~71% market share)
 | Bank | Market Share | Status |
 |------|--------------|--------|
-| Swedbank | ~25% | To Add |
+| Swedbank | ~25% | **Done** |
 | Handelsbanken | ~24% | **Done** |
 | SEB | ~15% | **Done** |
 | Nordea | ~14% | **Done** |
@@ -77,7 +79,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 ## Priority Order for Implementation
 
 ### High Priority (Major market presence)
-1. **Swedbank** - Largest market share (~25%)
+1. ~~**Swedbank** - Largest market share (~25%)~~ **Done**
 2. ~~**Handelsbanken** - Second largest (~24%)~~ **Done**
 3. ~~**SBAB** - Third largest, state-owned, great data quality~~ **Done**
 4. **Länsförsäkringar Bank** - Major player, high satisfaction
@@ -162,8 +164,8 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ## Summary
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 6 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB)
-- **Remaining to add**: 15
+- **Already implemented**: 7 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank)
+- **Remaining to add**: 14
 
 ---
 
@@ -171,27 +173,31 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ### 1. Swedbank
 
-**Status**: Ready to implement
+**Status**: ✅ Implemented
 **Difficulty**: Easy
 **HTTP Method**: Basic net/http (curl works)
 
 **URLs**:
-- List Rates & Avg Rates: `https://www.swedbank.se/privat/boende-och-bolan/bolanerantor.html`
+- List Rates: `https://www.swedbank.se/privat/boende-och-bolan/bolanerantor.html`
+- Historic Average Rates: `https://www.swedbank.se/privat/boende-och-bolan/bolanerantor/historiska-genomsnittsrantor.html`
 
 **Data Format**: Static HTML tables embedded in page
 
 **Tables Found**:
-1. "Genomsnittsränta" (Average rates) - contains snitträntor per bindningstid
-2. "Aktuella bolåneräntor" (List rates) - contains listräntor per bindningstid
+1. List rates page: "Aktuella bolåneräntor – listpris" table
+2. Historic page: Table with `<caption>` "Våra historiska genomsnittsräntor" (transposed: months as rows, terms as columns)
 
-**Terms Available**: 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 7 år, 10 år, Banklån
+**Terms Available**: 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 7 år, 10 år
 
-**Date Format**: "senast ändrad 25 september 2025" in header text
+**Date Format**:
+- List rates: "senast ändrad 25 september 2025" in header text
+- Historic months: "nov. 2025", "okt. 2025" (abbreviated Swedish months with period)
 
 **Implementation Notes**:
-- Use `utils.FindTokenizedTableByTextBeforeTable()` to find tables
-- Parse date from header text using regex
-- Similar pattern to existing Nordea/ICA crawlers
+- List rates: Use `utils.FindTokenizedTableByTextBeforeTable()` with "Aktuella bolåneräntor – listpris"
+- Historic rates: Use `utils.FindTokenizedTableByTextInCaption()` to find table by caption
+- Historic table is transposed (months as rows, terms as columns)
+- Abbreviations like "nov.", "okt.", "sep." are handled by extended Swedish month parser
 
 ---
 
