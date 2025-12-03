@@ -28,6 +28,33 @@ type HandelsbankenCrawler struct {
 	logger     *zap.Logger
 }
 
+// handelsbankenListRatesResponse represents the JSON response for list rates.
+type handelsbankenListRatesResponse struct {
+	InterestRates []handelsbankenInterestRate `json:"interestRates"`
+}
+
+type handelsbankenInterestRate struct {
+	EffectiveRateValue handelsbankenRateValue `json:"effectiveRateValue"`
+	PeriodBasisType    string                 `json:"periodBasisType"` // "3" = months, "4" = years
+	RateValue          handelsbankenRateValue `json:"rateValue"`
+	Term               string                 `json:"term"` // number of months/years
+}
+
+type handelsbankenRateValue struct {
+	Value    string  `json:"value"`    // formatted string "3,84"
+	ValueRaw float32 `json:"valueRaw"` // numeric value 3.84
+}
+
+// handelsbankenAvgRatesResponse represents the JSON response for average rates.
+type handelsbankenAvgRatesResponse struct {
+	AverageRatePeriods []handelsbankenAvgRatePeriod `json:"averageRatePeriods"`
+}
+
+type handelsbankenAvgRatePeriod struct {
+	Period string                      `json:"period"` // YYYYMM format
+	Rates  []handelsbankenInterestRate `json:"rates"`
+}
+
 func NewHandelsbankenCrawler(httpClient http.Client, logger *zap.Logger) *HandelsbankenCrawler {
 	return &HandelsbankenCrawler{httpClient: httpClient, logger: logger}
 }
@@ -48,23 +75,6 @@ func (c *HandelsbankenCrawler) Crawl(channel chan<- model.InterestSet) {
 	for _, set := range append(listRates, avgRates...) {
 		channel <- set
 	}
-}
-
-// handelsbankenListRatesResponse represents the JSON response for list rates.
-type handelsbankenListRatesResponse struct {
-	InterestRates []handelsbankenInterestRate `json:"interestRates"`
-}
-
-type handelsbankenInterestRate struct {
-	EffectiveRateValue handelsbankenRateValue `json:"effectiveRateValue"`
-	PeriodBasisType    string                 `json:"periodBasisType"` // "3" = months, "4" = years
-	RateValue          handelsbankenRateValue `json:"rateValue"`
-	Term               string                 `json:"term"` // number of months/years
-}
-
-type handelsbankenRateValue struct {
-	Value    string  `json:"value"`    // formatted string "3,84"
-	ValueRaw float32 `json:"valueRaw"` // numeric value 3.84
 }
 
 func (c *HandelsbankenCrawler) fetchListRates(crawlTime time.Time) ([]model.InterestSet, error) {
@@ -105,16 +115,6 @@ func (c *HandelsbankenCrawler) fetchListRates(crawlTime time.Time) ([]model.Inte
 	}
 
 	return interestSets, nil
-}
-
-// handelsbankenAvgRatesResponse represents the JSON response for average rates.
-type handelsbankenAvgRatesResponse struct {
-	AverageRatePeriods []handelsbankenAvgRatePeriod `json:"averageRatePeriods"`
-}
-
-type handelsbankenAvgRatePeriod struct {
-	Period string                      `json:"period"` // YYYYMM format
-	Rates  []handelsbankenInterestRate `json:"rates"`
 }
 
 func (c *HandelsbankenCrawler) fetchAverageRates(crawlTime time.Time) ([]model.InterestSet, error) {

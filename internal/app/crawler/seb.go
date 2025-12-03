@@ -36,6 +36,18 @@ type SebBankCrawler struct {
 	logger     *zap.Logger
 }
 
+type sebListRatesResponseItem struct {
+	AdjustmentTerm string  `json:"adjustmentTerm"`
+	Change         float32 `json:"change"`
+	StartDate      string  `json:"startDate"`
+	Value          float32 `json:"value"`
+}
+
+type sebAverageRatesResponse struct {
+	Period uint               `json:"period"`
+	Rates  map[string]float32 `json:"rates"`
+}
+
 func NewSebBankCrawler(httpClient http.Client, logger *zap.Logger) *SebBankCrawler {
 	return &SebBankCrawler{httpClient: httpClient, logger: logger}
 }
@@ -90,13 +102,6 @@ func (c *SebBankCrawler) fetchAPIKey() (string, error) {
 	return apiKey, nil
 }
 
-type sebListRatesResponseItem struct {
-	AdjustmentTerm string  `json:"adjustmentTerm"`
-	Change         float32 `json:"change"`
-	StartDate      string  `json:"startDate"`
-	Value          float32 `json:"value"`
-}
-
 func (c *SebBankCrawler) fetchListRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
 	rawJSON, err := c.fetchWithAPIKey(sebListRateURL, apiKey)
 	if err != nil {
@@ -149,11 +154,6 @@ func (c *SebBankCrawler) fetchWithAPIKey(url string, apiKey string) (string, err
 	}
 
 	return c.httpClient.Fetch(url, headers) //nolint:wrapcheck
-}
-
-type sebAverageRatesResponse struct {
-	Period uint               `json:"period"`
-	Rates  map[string]float32 `json:"rates"`
 }
 
 func (c *SebBankCrawler) fetchAverageRates(apiKey string, crawlTime time.Time) ([]model.InterestSet, error) {
