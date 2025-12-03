@@ -1,4 +1,4 @@
-//nolint:revive,nolintlint // package name matches the package being tested
+//nolint:revive,nolintlint,dupl // package name matches the package being tested; test patterns intentionally similar across crawlers
 package crawler
 
 import (
@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//nolint:cyclop // table-driven test with multiple cases
 func TestSBABCrawler_Crawl(t *testing.T) {
 	t.Parallel()
 

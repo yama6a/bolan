@@ -165,6 +165,22 @@ func (c *HandelsbankenCrawler) fetchAverageRates(crawlTime time.Time) ([]model.I
 	return interestSets, nil
 }
 
+// handelsbankenYearTermMap maps year numbers to model.Term for Handelsbanken.
+//
+//nolint:gochecknoglobals // constant lookup map to reduce cyclomatic complexity
+var handelsbankenYearTermMap = map[int]model.Term{
+	1:  model.Term1year,
+	2:  model.Term2years,
+	3:  model.Term3years,
+	4:  model.Term4years,
+	5:  model.Term5years,
+	6:  model.Term6years,
+	7:  model.Term7years,
+	8:  model.Term8years,
+	9:  model.Term9years,
+	10: model.Term10years,
+}
+
 // parseHandelsbankenTerm converts Handelsbanken's periodBasisType and term to model.Term.
 // periodBasisType "3" = months, "4" = years.
 func parseHandelsbankenTerm(periodBasisType, term string) (model.Term, error) {
@@ -180,30 +196,10 @@ func parseHandelsbankenTerm(periodBasisType, term string) (model.Term, error) {
 		}
 		return "", fmt.Errorf("unsupported month term: %d", termNum)
 	case "4": // years
-		switch termNum {
-		case 1:
-			return model.Term1year, nil
-		case 2:
-			return model.Term2years, nil
-		case 3:
-			return model.Term3years, nil
-		case 4:
-			return model.Term4years, nil
-		case 5:
-			return model.Term5years, nil
-		case 6:
-			return model.Term6years, nil
-		case 7:
-			return model.Term7years, nil
-		case 8:
-			return model.Term8years, nil
-		case 9:
-			return model.Term9years, nil
-		case 10:
-			return model.Term10years, nil
-		default:
-			return "", fmt.Errorf("unsupported year term: %d", termNum)
+		if t, ok := handelsbankenYearTermMap[termNum]; ok {
+			return t, nil
 		}
+		return "", fmt.Errorf("unsupported year term: %d", termNum)
 	default:
 		return "", fmt.Errorf("unsupported periodBasisType: %s", periodBasisType)
 	}

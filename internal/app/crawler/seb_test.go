@@ -1,4 +1,4 @@
-//nolint:revive,nolintlint // package name matches the package being tested
+//nolint:revive,nolintlint,dupl // package name matches the package being tested; test patterns intentionally similar across crawlers
 package crawler
 
 import (
@@ -11,6 +11,8 @@ import (
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
 )
+
+const sebTestHTMLWithJSRef = `<html><script src="main.test123.js"></script></html>`
 
 // assertSEBListRateFields validates common fields for SEB list rate results.
 func assertSEBListRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
@@ -87,6 +89,7 @@ func createSEBMockFetch(t *testing.T) func(url string, headers map[string]string
 	}
 }
 
+//nolint:cyclop // table-driven test with multiple cases
 func TestSebBankCrawler_Crawl(t *testing.T) {
 	t.Parallel()
 
@@ -230,6 +233,7 @@ func TestSebBankCrawler_Crawl(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // table-driven test with multiple cases
 func TestSebBankCrawler_fetchAPIKey(t *testing.T) {
 	t.Parallel()
 
@@ -245,7 +249,7 @@ func TestSebBankCrawler_fetchAPIKey(t *testing.T) {
 			name: "successful API key extraction",
 			mockFetch: func(url string, _ map[string]string) (string, error) {
 				if url == sebAvgCurrentHTMLURL {
-					return `<html><script src="main.test123.js"></script></html>`, nil
+					return sebTestHTMLWithJSRef, nil
 				}
 				if strings.HasSuffix(url, ".js") {
 					return `const config = {"x-api-key":"my-secret-key-123"};`, nil
@@ -278,7 +282,7 @@ func TestSebBankCrawler_fetchAPIKey(t *testing.T) {
 			name: "JS file fetch error",
 			mockFetch: func(url string, _ map[string]string) (string, error) {
 				if url == sebAvgCurrentHTMLURL {
-					return `<html><script src="main.test123.js"></script></html>`, nil
+					return sebTestHTMLWithJSRef, nil
 				}
 				return "", errors.New("JS fetch failed")
 			},
@@ -289,7 +293,7 @@ func TestSebBankCrawler_fetchAPIKey(t *testing.T) {
 			name: "API key not found in JS",
 			mockFetch: func(url string, _ map[string]string) (string, error) {
 				if url == sebAvgCurrentHTMLURL {
-					return `<html><script src="main.test123.js"></script></html>`, nil
+					return sebTestHTMLWithJSRef, nil
 				}
 				if strings.HasSuffix(url, ".js") {
 					return `const config = {"other": "value"};`, nil

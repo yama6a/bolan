@@ -1,4 +1,4 @@
-//nolint:revive,nolintlint // package name matches the package being tested
+//nolint:revive,nolintlint,dupl // package name matches the package being tested; test patterns intentionally similar across crawlers
 package crawler
 
 import (
