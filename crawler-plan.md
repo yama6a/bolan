@@ -5,6 +5,7 @@
 - [x] SEB
 - [x] ICA Banken
 - [x] Nordea
+- [x] SBAB
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -26,7 +27,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 12 | Nordax Bank/NOBA Bank Group | nordax.se | To Add | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%) |
 | 13 | Nordea | nordea.se | **Done** | Big Four |
 | 14 | Nordnet | nordnet.se | To Add | Variable rate only (1.80-3.31%) |
-| 15 | SBAB | sbab.se | To Add | State-owned, highest satisfaction, full term range |
+| 15 | SBAB | sbab.se | **Done** | State-owned, highest satisfaction, full term range |
 | 16 | SEB | seb.se | **Done** | Big Four |
 | 17 | Skandiabanken | skandiabanken.se | To Add | Insurance bank, terms up to 5 år |
 | 18 | Stabelo | stabelo.se | To Add | Also via Avanza/Bolån+ and Nordnet, data currently missing |
@@ -47,7 +48,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 ### Major Banks & Mortgage Institutions
 | Bank | Notes | Status |
 |------|-------|--------|
-| SBAB | ~8.5% share, state-owned, highest customer satisfaction | To Add |
+| SBAB | ~8.5% share, state-owned, highest customer satisfaction | **Done** |
 | Länsförsäkringar Bank | Insurance company's bank, high satisfaction | To Add |
 | Skandiabanken | Insurance/pension company's bank | To Add |
 | Danske Bank | - | **Done** |
@@ -77,8 +78,8 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 ### High Priority (Major market presence)
 1. **Swedbank** - Largest market share (~25%)
-2. **Handelsbanken** - Second largest (~24%)
-3. **SBAB** - Third largest, state-owned, great data quality
+2. ~~**Handelsbanken** - Second largest (~24%)~~ **Done**
+3. ~~**SBAB** - Third largest, state-owned, great data quality~~ **Done**
 4. **Länsförsäkringar Bank** - Major player, high satisfaction
 
 ### Medium Priority (Significant presence)
@@ -161,8 +162,8 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ## Summary
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 5 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken)
-- **Remaining to add**: 16
+- **Already implemented**: 6 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB)
+- **Remaining to add**: 15
 
 ---
 
