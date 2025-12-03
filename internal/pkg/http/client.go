@@ -29,8 +29,6 @@ type client struct {
 }
 
 // NewClient creates a new Client wrapping the provided http.Client.
-//
-//nolint:ireturn // Returns interface for testability.
 func NewClient(httpClient *gohttp.Client, timeout time.Duration) Client {
 	return &client{
 		httpClient: httpClient,
