@@ -19,6 +19,7 @@ func main() {
 		crawler.NewDanskeBankCrawler(logger.Named("danske-bank-crawler")),
 		crawler.NewSebBankCrawler(logger.Named("seb-crawler")),
 		crawler.NewICABankenCrawler(logger.Named("ica-banken-crawler")),
+		crawler.NewNordeaCrawler(logger.Named("nordea-crawler")),
 	}
 
 	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))
