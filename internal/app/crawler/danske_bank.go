@@ -91,9 +91,11 @@ func (c *DanskeBankCrawler) Crawl(channel chan<- model.InterestSet) {
 }
 
 func (c *DanskeBankCrawler) extractListRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Bankens aktuella listräntor")
+	// Search for "Läs mer om listräntor" which appears before the list rates tables.
+	// Skip the first table (skip=1) because it's an empty style-only table.
+	tokenizer, err := utils.FindTokenizedNthTableByTextBeforeTable(rawHTML, "Läs mer om listräntor", 1)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find table by text 'Bankens aktuella' before table: %w", err)
+		return nil, fmt.Errorf("failed to find table by text 'Läs mer om listräntor' before table: %w", err)
 	}
 
 	table, err := utils.ParseTable(tokenizer)
@@ -139,9 +141,9 @@ func (c *DanskeBankCrawler) extractListRates(rawHTML string, crawlTime time.Time
 }
 
 func (c *DanskeBankCrawler) extractAverageRates(rawHTML string, crawlTime time.Time) ([]model.InterestSet, error) {
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Genomsnittlig historisk")
+	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(rawHTML, "Historiska snitträntor")
 	if err != nil {
-		return nil, fmt.Errorf("failed to find table by text 'Genomsnittlig historisk' before table: %w", err)
+		return nil, fmt.Errorf("failed to find table by text 'Historiska snitträntor' before table: %w", err)
 	}
 
 	table, err := utils.ParseTable(tokenizer)
