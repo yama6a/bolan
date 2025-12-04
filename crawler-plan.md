@@ -29,7 +29,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 6 | ICA Banken | icabanken.se | **Done** | Full term range |
 | 7 | Ikano Bank | ikanobank.se | **Done** | Uses Borgo, full term range |
 | 8 | JAK Medlemsbank | jak.se | To Add | Ethical bank, only 3 mån and 1 år terms |
-| 9 | Landshypotek | landshypotek.se | To Add | Also via Avanza/Bolån+, terms up to 5 år |
+| 9 | Landshypotek | landshypotek.se | **Done** | Also via Avanza/Bolån+, terms up to 5 år |
 | 10 | Länsförsäkringar (LF) | lansforsakringar.se | Done | Major player, full term range |
 | 11 | Marginalen Bank | marginalen.se | To Add | Specialty lender, complex rate structure (4.46-10.56%) |
 | 12 | Nordax Bank/NOBA Bank Group | nordax.se | To Add | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%) |
@@ -60,7 +60,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Länsförsäkringar Bank | Insurance company's bank, high satisfaction | Done |
 | Skandiabanken | Insurance/pension company's bank | **Done** |
 | Danske Bank | - | **Done** |
-| Landshypotek Bank | Agricultural/rural property focus | To Add |
+| Landshypotek Bank | Agricultural/rural property focus | **Done** |
 | Ålandsbanken | Finnish bank operating in Sweden | To Add |
 | ICA Banken | Uses Borgo | **Done** |
 | Ikano Bank | Uses Borgo | **Done** |
@@ -92,7 +92,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 ### Medium Priority (Significant presence)
 5. ~~**Skandiabanken** - Major insurance bank~~ **Done**
-6. **Landshypotek Bank** - Niche but significant
+6. ~~**Landshypotek Bank** - Niche but significant~~ **Done**
 7. **Ålandsbanken** - Listed on all comparison sites
 8. ~~**Ikano Bank** - Uses Borgo~~ **Done**
 9. **Hypoteket** - Growing fintech player
@@ -374,26 +374,36 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ### 6. Landshypotek
 
-**Status**: Ready to implement
+**Status**: **Done** ✅
 **Difficulty**: Easy
 **HTTP Method**: Basic net/http (curl works)
 
 **URLs**:
-- Rates Page: `https://www.landshypotek.se/lana/privatlan/bolan/aktuella-bolaneranta/`
+- Rates Page: `https://www.landshypotek.se/lana/bolanerantor/`
 
 **Data Format**: Static HTML tables
 
 **Tables Found**:
-1. List rates table with Bindningstid, Listränta, Senast ändrad
-2. Average rates table (snitträntor) with monthly data
+1. List rates tables for different LTV tiers (60% and 75%) with Bindningstid, Ränta, Effektiv ränta
+2. Recent month average rates (expandable section)
+3. Historical average rates table with 12 months of data (expandable section)
 
-**Terms Available**: 3 mån, 1 år, 2 år, 3 år, 5 år
+**Terms Available**: 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år
 
 **Implementation Notes**:
 - Standard HTML table parsing with `utils.FindTokenizedTableByTextBeforeTable()`
-- Date format: "YYYY-MM-DD"
-- Max LTV is 75% (stricter than most banks)
+- Extract best rates (60% LTV tier) as list rates
+- Historical average rates table structure: År | Månad | 3 mån | 1 år | 2 år | 3 år | 4 år | 5 år
+- Month format: Full Swedish month names (e.g., "Oktober", "September")
+- Missing values shown as "n/a" when fewer than 5 loans issued
+- Max LTV is 75% (stricter than most banks' 85%)
 - Focus on rural/agricultural properties
+
+**Files Created**:
+- `internal/app/crawler/landshypotek/landshypotek.go`
+- `internal/app/crawler/landshypotek/landshypotek_test.go`
+- `internal/app/crawler/landshypotek/testdata/landshypotek_rates.html`
+- `internal/app/crawler/landshypotek/testdata/README.md`
 
 ---
 
