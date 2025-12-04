@@ -39,6 +39,7 @@ func main() {
 		crawler.NewSkandiaCrawler(httpClient, logger.Named("skandia-crawler")),
 		crawler.NewSwedbankCrawler(httpClient, logger.Named("swedbank-crawler")),
 		crawler.NewStabeloCrawler(httpClient, logger.Named("stabelo-crawler")),
+		crawler.NewBluestepCrawler(httpClient, logger.Named("bluestep-crawler")),
 	}
 
 	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))

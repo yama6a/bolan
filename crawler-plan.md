@@ -8,6 +8,7 @@
 - [x] SBAB
 - [x] Handelsbanken
 - [x] Swedbank
+- [x] Bluestep
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -16,7 +17,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | # | Bank | Website | Status | Notes |
 |---|------|---------|--------|-------|
 | 1 | Avanza Bank | avanza.se | To Add | Superbolånet product, variable rate only (2.01-2.25%) |
-| 2 | Bluestep/Enity Bank Group | bluestep.se | To Add | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
+| 2 | Bluestep/Enity Bank Group | bluestep.se | **Done** | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
 | 3 | Danske Bank | danskebank.se | **Done** | Full term range |
 | 4 | Handelsbanken | handelsbanken.se | **Done** | Big Four, full term range |
 | 5 | Hypoteket | hypoteket.com | To Add | Digital-first, data currently missing on Konsumenternas |
@@ -70,7 +71,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 ### Specialty/Non-Prime Lenders
 | Bank | Notes | Status |
 |------|-------|--------|
-| Bluestep/Enity Bank Group | Largest specialty lender in Nordics | To Add |
+| Bluestep/Enity Bank Group | Largest specialty lender in Nordics | **Done** |
 | Marginalen Bank | Higher approval rates | To Add |
 | Nordax Bank/NOBA Bank Group | Non-prime lending | To Add |
 | Svea Bank | Non-prime lending | To Add |
@@ -96,7 +97,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 11. **Avanza Bank** - Variable rate only
 12. **Nordnet** - Variable rate only
 13. **JAK Medlemsbank** - Limited terms
-14. **Bluestep Bank** - Specialty lender
+14. ~~**Bluestep Bank** - Specialty lender~~ **Done**
 15. **Marginalen Bank** - Non-prime
 16. **Nordax Bank** - Non-prime
 17. **Svea Bank** - Non-prime, variable only
@@ -164,8 +165,8 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ## Summary
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 7 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank)
-- **Remaining to add**: 14
+- **Already implemented**: 11 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken, Stabelo, Bluestep)
+- **Remaining to add**: 10
 
 ---
 
@@ -724,7 +725,7 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 
 ### 14. Bluestep
 
-**Status**: Ready to implement
+**Status**: ✅ Implemented
 **Difficulty**: Easy
 **HTTP Method**: Basic net/http (curl works)
 
@@ -735,7 +736,7 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 **Data Format**: Static HTML tables
 
 **Tables Found**:
-1. List rates table: Bindningstid, Ränta, Senast ändrad
+1. List rates table: Terms in header row (Rörlig 3 månader, Fast 3 år, Fast 5 år), rates in second row
 2. Average rates table: Månad, 3 mån, 1 år, 3 år, 5 år
 
 **Current Rates Example**:
@@ -743,13 +744,18 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 - 3 år: 4.60%
 - 5 år: 4.68%
 
-**Terms Available**: 3 mån, 3 år, 5 år (limited terms)
+**Terms Available**:
+- List rates: 3 mån, 3 år, 5 år
+- Average rates: 3 mån, 1 år, 3 år, 5 år
 
 **Implementation Notes**:
 - Specialty/non-prime lender (higher rates)
 - Two separate pages for list and average rates
-- Standard HTML table parsing
-- Offers kontantinsatslån (Hemlån) for up to 10%
+- List rates table uses `<td>` for both header and data rows (no `<th>`)
+- Search for "Bolån*" text before table to locate list rates
+- Average rates have standard `<th>` header row
+- Month format: "YYYY MM" (e.g., "2025 11")
+- Rate format: Swedish decimal with comma (e.g., "4,45%")
 - Rate range: 4.45% - 9.30%
 
 ---

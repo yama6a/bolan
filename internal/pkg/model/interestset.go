@@ -30,24 +30,24 @@ type (
 )
 
 type RatioDiscountBoundary struct {
-	MinRatio float32
-	MaxRatio float32
+	MinRatio float32 `json:"minRatio"`
+	MaxRatio float32 `json:"maxRatio"`
 }
 
 type InterestSet struct {
-	Bank          Bank
-	Type          Type
-	Term          Term
-	NominalRate   float32
-	ChangedOn     *time.Time
-	LastCrawledAt time.Time
+	Bank          Bank       `json:"bank"`
+	Type          Type       `json:"type"`
+	Term          Term       `json:"term"`
+	NominalRate   float32    `json:"nominalRate"`
+	ChangedOn     *time.Time `json:"changedOn"`
+	LastCrawledAt time.Time  `json:"lastCrawledAt"`
 
-	RatioDiscountBoundaries *RatioDiscountBoundary // only for type ratioDiscounted
-	UnionDiscount           bool                   // only true for type unionDiscounted
-	AverageReferenceMonth   *AvgMonth              // only for type average
+	RatioDiscountBoundaries *RatioDiscountBoundary `json:"ratioDiscountBoundaries"` // only for type ratioDiscounted
+	UnionDiscount           bool                   `json:"unionDiscount"`           // only for type unionDiscounted
+	AverageReferenceMonth   *AvgMonth              `json:"averageReferenceMonth"`   // only for type averageRate
 }
 
 type AvgMonth struct {
-	Month time.Month
-	Year  uint
+	Month time.Month `json:"month"`
+	Year  uint       `json:"year"`
 }
