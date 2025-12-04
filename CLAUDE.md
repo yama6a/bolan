@@ -10,13 +10,35 @@
 ## Project Structure
 ```
 cmd/crawler/                        # Main entrypoint (instantiates singletons)
-internal/app/crawler/               # Crawler implementations (one file per bank)
+internal/app/crawler/               # Crawler base package (SiteCrawler interface, testing helpers)
+internal/app/crawler/{bank}/        # Each bank has its own package
+  ├── {bank}.go                     # Crawler implementation
+  ├── {bank}_test.go                # Tests
+  ├── testdata/                     # Golden files (HTML/JSON/XLSX)
+  │   ├── {bank}_list_rates.*       # List rate test data
+  │   ├── {bank}_avg_rates.*        # Average rate test data
+  │   └── README.md                 # Bank-specific documentation
 internal/pkg/http/                  # HTTP client interface + implementation
 internal/pkg/http/httpmock/         # Generated mocks (via moq)
 internal/pkg/model/                 # Data models (InterestSet, Term, Bank, Type)
 internal/pkg/utils/                 # HTML parsing, string normalization
 internal/pkg/store/                 # Data storage interface
 ```
+
+### Current Bank Crawlers
+Each bank crawler is in its own package:
+- `alandsbanken/` - Ålandsbanken
+- `bluestep/` - Bluestep
+- `danskebank/` - Danske Bank
+- `handelsbanken/` - Handelsbanken
+- `icabanken/` - ICA Banken
+- `ikanobank/` - Ikano Bank
+- `nordea/` - Nordea
+- `sbab/` - SBAB
+- `seb/` - SEB
+- `skandia/` - Skandia
+- `stabelo/` - Stabelo
+- `swedbank/` - Swedbank
 
 ## Commands
 ```bash
@@ -44,26 +66,45 @@ If `make ci` fails, fix all reported issues before continuing to the next task.
 When adding a new bank crawler, the following files must be created or modified:
 
 ### Files to Create
-1. `internal/app/crawler/{bank_name}.go` - Crawler implementation
-2. `internal/app/crawler/{bank_name}_test.go` - Tests
-3. `internal/app/crawler/testdata/{bank_name}.html` (or `.json`) - Golden file(s)
+1. `internal/app/crawler/{bank_name}/{bank_name}.go` - Crawler implementation
+2. `internal/app/crawler/{bank_name}/{bank_name}_test.go` - Tests
+3. `internal/app/crawler/{bank_name}/testdata/` - Directory for golden files
+   - `{bank_name}_list_rates.*` - List rate test data (HTML/JSON/XLSX)
+   - `{bank_name}_avg_rates.*` - Average rate test data (HTML/JSON/XLSX)
+   - `README.md` - Bank-specific documentation (URLs, headers, data formats)
 
 ### Files to Modify
-4. `cmd/crawler/main.go` - Register the new crawler
+4. `cmd/crawler/main.go` - Import and register the new crawler package
 5. `crawler-plan.md` - Update bank status to "Done"
-6. `internal/app/crawler/_crawler-data-sources.md` - Document URLs, headers, and data formats
 
 ### Implementation Pattern
+- Create package: `package {bankname}` (lowercase, no underscores)
+- Import crawler package: `import "github.com/yama6a/bolan-compare/internal/app/crawler"`
 - Inject `http.Client` and `*zap.Logger` via constructor
-- Add interface compliance check: `var _ SiteCrawler = &BankNameCrawler{}`
+- Add interface compliance check: `var _ crawler.SiteCrawler = &BankNameCrawler{}`
+- Use `//nolint:revive // Bank name prefix is intentional for clarity` if type name "stutters"
 - Prefer HTTP over Playwright - only use Playwright for exploration
 - If HTTP doesn't work, document the reason in `crawler-plan.md`
 
 ### Testing Pattern
 - Use golden files (real HTML/JSON/XLSX from bank websites) for deterministic tests
 - **NEVER create fake test data** - only use actual data downloaded from the bank's website
+- Import test helpers: `import crawlertest "github.com/yama6a/bolan-compare/internal/app/crawler"`
+- Load golden files: `crawlertest.LoadGoldenFile(t, "testdata/filename.json")`
 - Mock HTTP client using `httpmock.ClientMock`
 - Test extraction methods, parsing functions, and edge cases
+- Use shared assertions: `crawlertest.AssertBankName()`, `crawlertest.CountRatesByType()`
+
+### Example Structure
+```
+internal/app/crawler/examplebank/
+├── examplebank.go           # Implementation
+├── examplebank_test.go      # Tests
+└── testdata/
+    ├── README.md            # Bank-specific docs
+    ├── examplebank_list_rates.json
+    └── examplebank_avg_rates.html
+```
 
 ## HTML Table Parsing
 
