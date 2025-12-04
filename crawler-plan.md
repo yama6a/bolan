@@ -30,7 +30,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 7 | Ikano Bank | ikanobank.se | **Done** | Uses Borgo, full term range |
 | 8 | JAK Medlemsbank | jak.se | To Add | Ethical bank, only 3 mån and 1 år terms |
 | 9 | Landshypotek | landshypotek.se | To Add | Also via Avanza/Bolån+, terms up to 5 år |
-| 10 | Länsförsäkringar (LF) | lansforsakringar.se | To Add | Major player, full term range |
+| 10 | Länsförsäkringar (LF) | lansforsakringar.se | Done | Major player, full term range |
 | 11 | Marginalen Bank | marginalen.se | To Add | Specialty lender, complex rate structure (4.46-10.56%) |
 | 12 | Nordax Bank/NOBA Bank Group | nordax.se | To Add | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%) |
 | 13 | Nordea | nordea.se | **Done** | Big Four |
@@ -57,7 +57,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Bank | Notes | Status |
 |------|-------|--------|
 | SBAB | ~8.5% share, state-owned, highest customer satisfaction | **Done** |
-| Länsförsäkringar Bank | Insurance company's bank, high satisfaction | To Add |
+| Länsförsäkringar Bank | Insurance company's bank, high satisfaction | Done |
 | Skandiabanken | Insurance/pension company's bank | **Done** |
 | Danske Bank | - | **Done** |
 | Landshypotek Bank | Agricultural/rural property focus | To Add |
@@ -88,7 +88,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 1. ~~**Swedbank** - Largest market share (~25%)~~ **Done**
 2. ~~**Handelsbanken** - Second largest (~24%)~~ **Done**
 3. ~~**SBAB** - Third largest, state-owned, great data quality~~ **Done**
-4. **Länsförsäkringar Bank** - Major player, high satisfaction
+4. ~~**Länsförsäkringar Bank** - Major player, high satisfaction~~ **Done**
 
 ### Medium Priority (Significant presence)
 5. ~~**Skandiabanken** - Major insurance bank~~ **Done**
@@ -311,33 +311,36 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ### 4. Länsförsäkringar
 
-**Status**: Ready to implement
-**Difficulty**: Medium
-**HTTP Method**: Basic net/http (requires JS rendering OR use PDF)
+**Status**: **Done** ✅
+**Difficulty**: Easy (simpler than expected)
+**HTTP Method**: Basic net/http with User-Agent header
 
 **URLs**:
 - Rates Page: `https://www.lansforsakringar.se/stockholm/privat/bank/bolan/bolaneranta/`
 - Historic Avg PDF: `http://lansforsakringar.se/osfiles/00000-bolanerantor-genomsnittliga.pdf`
 
-**Data Format**: Static HTML tables (JS-rendered) + PDF for historic data
+**Data Format**: Static HTML tables (no JS rendering required with proper User-Agent)
 
 **Important**: URL includes regional prefix (e.g., `/stockholm/`). Rates appear same across regions.
 
 **Tables Found**:
-1. "Genomsnittlig ränta [month] [year]" - Snitträntor table
+1. "Genomsnittlig ränta [month] [year]" - Snitträntor table (current month only)
 2. "Listräntor" - Contains Bindningstid, Ränta, Ändring, Datum
 
-**Terms Available**: 3 mån, 1-10 år
+**Terms Available**: 3 mån, 1-5 år, 7 år, 10 år
 
 **Implementation Notes**:
-- HTML returned by curl is empty - data loaded via JavaScript
-- **Option 1**: Use Playwright to render page, then parse HTML
-- **Option 2**: Parse the PDF for historic average rates
-- **Option 3**: Check if there's an API endpoint (not found in network requests)
+- HTML renders correctly with proper User-Agent header (no JS required)
+- Average rates table includes only current month (for historic data, would need to parse PDF)
 - List rates table has 4 columns: Bindningstid, Ränta, Ändring, Datum
 - Date format: "YYYY-MM-DD"
+- 7 år term often has no rate data (empty cell)
 
-**Recommendation**: May need to use Playwright for initial render, then extract data. Consider if worth the complexity vs skipping this bank.
+**Files Created**:
+- `internal/app/crawler/lansforsakringar/lansforsakringar.go`
+- `internal/app/crawler/lansforsakringar/lansforsakringar_test.go`
+- `internal/app/crawler/lansforsakringar/testdata/lansforsakringar_rates.html`
+- `internal/app/crawler/lansforsakringar/testdata/README.md`
 
 ---
 
@@ -890,7 +893,7 @@ Based on difficulty and market importance:
 ### Phase 3 (Medium - Special parsing)
 12. **Hypoteket** - Nuxt.js payload JSON
 13. **Nordnet** - Contentful CMS API
-14. **Länsförsäkringar** - JS-rendered (may need Playwright)
+14. ~~**Länsförsäkringar** - JS-rendered (may need Playwright)~~ **Done** - Works with standard HTTP
 15. **Marginalen Bank** - Complex HTML parsing
 16. **Nordax Bank** - HTML content parsing
 17. **Svea Bank** - Average rates only

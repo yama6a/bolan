@@ -12,6 +12,7 @@ import (
 	"github.com/yama6a/bolan-compare/internal/app/crawler/handelsbanken"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/icabanken"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/ikanobank"
+	"github.com/yama6a/bolan-compare/internal/app/crawler/lansforsakringar"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/nordea"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/nordnet"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/sbab"
@@ -56,6 +57,7 @@ func main() {
 		ikanobank.NewIkanoBankCrawler(httpClient, logger.Named("ikano-bank-crawler")),
 		alandsbanken.NewAlandsbankCrawler(httpClient, logger.Named("alandsbanken-crawler")),
 		nordnet.NewNordnetCrawler(httpClient, logger.Named("nordnet-crawler")),
+		lansforsakringar.NewLansforsakringarCrawler(httpClient, logger.Named("lansforsakringar-crawler")),
 	}
 
 	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))
