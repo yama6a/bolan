@@ -69,7 +69,6 @@ func NewSwedbankCrawler(httpClient http.Client, logger *zap.Logger) *SwedbankCra
 	return &SwedbankCrawler{httpClient: httpClient, logger: logger}
 }
 
-//nolint:dupl // Crawl pattern intentionally similar across crawlers
 func (c *SwedbankCrawler) Crawl(channel chan<- model.InterestSet) {
 	interestSets := []model.InterestSet{}
 	crawlTime := time.Now().UTC()

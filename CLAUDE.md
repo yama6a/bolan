@@ -60,7 +60,8 @@ When adding a new bank crawler, the following files must be created or modified:
 - If HTTP doesn't work, document the reason in `crawler-plan.md`
 
 ### Testing Pattern
-- Use golden files (real HTML/JSON from bank websites) for deterministic tests
+- Use golden files (real HTML/JSON/XLSX from bank websites) for deterministic tests
+- **NEVER create fake test data** - only use actual data downloaded from the bank's website
 - Mock HTTP client using `httpmock.ClientMock`
 - Test extraction methods, parsing functions, and edge cases
 
@@ -104,12 +105,33 @@ Log and continue on parse errors (don't fail entire crawl). Use `c.logger.Warn()
 ### Interface Compliance
 Always add compile-time interface checks: `var _ SiteCrawler = &BankNameCrawler{}`
 
+## Robustness Requirements
+
+### Never Hardcode Terms
+- **Always read terms from source** using `utils.ParseTerm()` - never hardcode term lists
+- Terms should be extracted dynamically from table headers, XLSX headers, or JSON keys
+- This makes crawlers resilient to banks adding/removing terms
+
+### Dynamic Link Discovery
+- When a page links to downloadable files (XLSX, PDF), search for the link dynamically
+- Don't hardcode filenames - they may change (e.g., `rates-2506.xlsx` → `rates-2507.xlsx`)
+- Example: Use regex like `href="([^"]*\.xlsx)"` to find any XLSX link on a page
+- Verify there's only one link of that type, or handle multiple appropriately
+
+### Dynamic Header/Sheet Discovery
+- For XLSX files, don't hardcode sheet names or header row numbers
+- Search for sheets by keywords (e.g., "ränteändring", "historisk")
+- Search for header rows by identifying marker text (e.g., "Datum", "Bindningstid")
+
 ## Don'ts
 - Don't use external HTTP client libraries (use standard `net/http`)
 - Don't panic on parse errors (log and continue)
 - Don't hardcode rate values (always fetch from source)
+- Don't hardcode terms - always read from source
+- Don't hardcode filenames for downloadable files - discover them dynamically
 - Don't skip `make lint` - CI will fail
 - Don't commit without running `make ci`
+- Don't create fake test data - only use real golden files from bank websites
 
 ## Research Resources
 - See `crawler-plan.md` for implementation details per bank

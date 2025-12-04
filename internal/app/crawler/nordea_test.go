@@ -3,6 +3,8 @@ package crawler
 
 import (
 	"errors"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,8 +34,8 @@ func assertNordeaListRateFields(t *testing.T, r model.InterestSet, crawlTime tim
 	}
 }
 
-// assertNordeaAverageRateFields validates common fields for Nordea average rate results.
-func assertNordeaAverageRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
+// assertNordeaAvgRateFields validates common fields for Nordea average rate results.
+func assertNordeaAvgRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
 	t.Helper()
 
 	if r.Bank != nordeaBankName {
@@ -53,94 +55,111 @@ func assertNordeaAverageRateFields(t *testing.T, r model.InterestSet, crawlTime 
 	}
 }
 
-func TestNordeaCrawler_Crawl(t *testing.T) {
+// loadGoldenFileBytes loads a binary golden file for testing.
+func loadGoldenFileBytes(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read golden file %s: %v", path, err)
+	}
+	return data
+}
+
+func TestNordeaCrawler_Crawl_Success(t *testing.T) {
 	t.Parallel()
 
 	listRatesHTML := loadGoldenFile(t, "testdata/nordea_list_rates.html")
-	avgRatesHTML := loadGoldenFile(t, "testdata/nordea_avg_rates.html")
-	logger := zap.NewNop()
+	historicRatesPageHTML := loadGoldenFile(t, "testdata/nordea_historic_rates_page.html")
+	historicRatesXLSX := loadGoldenFileBytes(t, "testdata/nordea_historic_rates.xlsx")
 
-	tests := []struct {
-		name             string
-		mockFetch        func(url string, headers map[string]string) (string, error)
-		wantListRates    int
-		wantAvgRates     bool
-		wantTotalMinimum int
-	}{
-		{
-			name: "successful crawl extracts list and average rates",
-			mockFetch: func(url string, _ map[string]string) (string, error) {
-				if url == nordeaListRatesURL {
-					return listRatesHTML, nil
-				}
-				if url == nordeaAvgRatesURL {
-					return avgRatesHTML, nil
-				}
-				return "", errors.New("unexpected URL")
-			},
-			wantListRates:    7, // 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 8 år
-			wantAvgRates:     true,
-			wantTotalMinimum: 14, // at least 14 interest sets (7 list + average rates)
+	mockClient := &httpmock.ClientMock{
+		FetchFunc: func(url string, _ map[string]string) (string, error) {
+			if url == nordeaListRatesURL {
+				return listRatesHTML, nil
+			}
+			if url == nordeaHistoricRatesURL {
+				return historicRatesPageHTML, nil
+			}
+			return "", errors.New("unexpected URL: " + url)
 		},
-		{
-			name: "fetch error returns no results",
-			mockFetch: func(_ string, _ map[string]string) (string, error) {
-				return "", errors.New("network error")
-			},
-			wantListRates:    0,
-			wantAvgRates:     false,
-			wantTotalMinimum: 0,
-		},
-		{
-			name: "list rates only when average rates fetch fails",
-			mockFetch: func(url string, _ map[string]string) (string, error) {
-				if url == nordeaListRatesURL {
-					return listRatesHTML, nil
-				}
-				return "", errors.New("network error")
-			},
-			wantListRates:    7,
-			wantAvgRates:     false,
-			wantTotalMinimum: 7,
+		FetchRawFunc: func(url string, _ map[string]string) ([]byte, error) {
+			if strings.HasSuffix(url, ".xlsx") {
+				return historicRatesXLSX, nil
+			}
+			return nil, errors.New("unexpected URL: " + url)
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+	crawler := NewNordeaCrawler(mockClient, zap.NewNop())
+	results := runNordeaCrawl(t, crawler)
 
-			mockClient := &httpmock.ClientMock{
-				FetchFunc: tt.mockFetch,
-			}
-
-			crawler := NewNordeaCrawler(mockClient, logger)
-			resultChan := make(chan model.InterestSet, 200)
-
-			crawler.Crawl(resultChan)
-			close(resultChan)
-
-			var results []model.InterestSet
-			for set := range resultChan {
-				results = append(results, set)
-			}
-
-			listRateCount, avgRateCount := countRatesByType(results)
-
-			if listRateCount != tt.wantListRates {
-				t.Errorf("list rate count = %d, want %d", listRateCount, tt.wantListRates)
-			}
-
-			if tt.wantAvgRates && avgRateCount == 0 {
-				t.Error("expected average rates but got none")
-			}
-
-			if len(results) < tt.wantTotalMinimum {
-				t.Errorf("total results = %d, want at least %d", len(results), tt.wantTotalMinimum)
-			}
-
-			assertBankName(t, results, nordeaBankName)
-		})
+	// Should have many results (7 list rates + thousands of historic rates)
+	if len(results) < 100 {
+		t.Errorf("total results = %d, want at least 100", len(results))
 	}
+
+	assertBankName(t, results, nordeaBankName)
+}
+
+func TestNordeaCrawler_Crawl_FetchError(t *testing.T) {
+	t.Parallel()
+
+	mockClient := &httpmock.ClientMock{
+		FetchFunc: func(_ string, _ map[string]string) (string, error) {
+			return "", errors.New("network error")
+		},
+		FetchRawFunc: func(_ string, _ map[string]string) ([]byte, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	crawler := NewNordeaCrawler(mockClient, zap.NewNop())
+	results := runNordeaCrawl(t, crawler)
+
+	if len(results) != 0 {
+		t.Errorf("expected no results on error, got %d", len(results))
+	}
+}
+
+func TestNordeaCrawler_Crawl_ListRatesOnly(t *testing.T) {
+	t.Parallel()
+
+	listRatesHTML := loadGoldenFile(t, "testdata/nordea_list_rates.html")
+
+	mockClient := &httpmock.ClientMock{
+		FetchFunc: func(url string, _ map[string]string) (string, error) {
+			if url == nordeaListRatesURL {
+				return listRatesHTML, nil
+			}
+			return "", errors.New("network error")
+		},
+		FetchRawFunc: func(_ string, _ map[string]string) ([]byte, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	crawler := NewNordeaCrawler(mockClient, zap.NewNop())
+	results := runNordeaCrawl(t, crawler)
+
+	// Should have list rates only (7 terms)
+	if len(results) != 7 {
+		t.Errorf("list rate count = %d, want 7", len(results))
+	}
+
+	assertBankName(t, results, nordeaBankName)
+}
+
+func runNordeaCrawl(t *testing.T, crawler *NordeaCrawler) []model.InterestSet {
+	t.Helper()
+	resultChan := make(chan model.InterestSet, 10000)
+	crawler.Crawl(resultChan)
+	close(resultChan)
+
+	results := make([]model.InterestSet, 0, len(resultChan))
+	for set := range resultChan {
+		results = append(results, set)
+	}
+	return results
 }
 
 func TestNordeaCrawler_extractListRates(t *testing.T) {
@@ -185,36 +204,46 @@ func TestNordeaCrawler_extractListRates(t *testing.T) {
 	}
 }
 
-func TestNordeaCrawler_extractAverageRates(t *testing.T) {
+func TestNordeaCrawler_parseHistoricRatesXLSX(t *testing.T) {
 	t.Parallel()
 
-	goldenHTML := loadGoldenFile(t, "testdata/nordea_avg_rates.html")
+	xlsxData := loadGoldenFileBytes(t, "testdata/nordea_historic_rates.xlsx")
 	logger := zap.NewNop()
 	crawler := &NordeaCrawler{logger: logger}
 	crawlTime := time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC)
 
-	results, err := crawler.extractAverageRates(goldenHTML, crawlTime)
+	results, err := crawler.parseHistoricRatesXLSX(xlsxData, crawlTime)
 	if err != nil {
-		t.Fatalf("extractAverageRates() error = %v", err)
+		t.Fatalf("parseHistoricRatesXLSX() error = %v", err)
 	}
 
 	if len(results) == 0 {
-		t.Fatal("extractAverageRates() returned no results")
+		t.Fatal("parseHistoricRatesXLSX() returned no results")
 	}
 
-	// Verify we got multiple months of data
-	months := make(map[string]bool)
+	// Verify we got multiple years of data (data spans 1990-2025)
+	years := make(map[int]bool)
 	for _, r := range results {
 		if r.AverageReferenceMonth != nil {
-			key := r.AverageReferenceMonth.Month.String() + string(rune(r.AverageReferenceMonth.Year))
-			months[key] = true
+			years[int(r.AverageReferenceMonth.Year)] = true
 		}
-		assertNordeaAverageRateFields(t, r, crawlTime)
+		assertNordeaAvgRateFields(t, r, crawlTime)
 	}
 
-	// Should have data for at least 2 months (based on current page structure)
-	if len(months) < 2 {
-		t.Errorf("got data for %d months, want at least 2", len(months))
+	// Should have data spanning many years
+	if len(years) < 10 {
+		t.Errorf("got data for %d years, want at least 10 (historic data spans 1990-2025)", len(years))
+	}
+
+	// Verify terms are present (dynamically parsed from XLSX header)
+	termsSeen := make(map[model.Term]bool)
+	for _, r := range results {
+		termsSeen[r.Term] = true
+	}
+
+	// Should have multiple terms parsed from the XLSX header
+	if len(termsSeen) < 5 {
+		t.Errorf("got %d unique terms, want at least 5", len(termsSeen))
 	}
 }
 
@@ -349,62 +378,47 @@ func TestParseNordeaDate(t *testing.T) {
 	}
 }
 
-func TestParseNordeaAvgMonth(t *testing.T) {
+func TestParseNordeaHistoricDate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		input     string
-		wantMonth time.Month
-		wantYear  uint
-		wantErr   bool
+		name    string
+		input   string
+		want    time.Time
+		wantErr bool
 	}{
 		{
-			name:      "November 2025 format",
-			input:     "202511",
-			wantMonth: time.November,
-			wantYear:  2025,
-			wantErr:   false,
+			name:    "valid date MM-DD-YY (2000s)",
+			input:   "06-15-24",
+			want:    time.Date(2024, time.June, 15, 0, 0, 0, 0, time.UTC),
+			wantErr: false,
 		},
 		{
-			name:      "December 2024 format",
-			input:     "202412",
-			wantMonth: time.December,
-			wantYear:  2024,
-			wantErr:   false,
+			name:    "valid date MM-DD-YY (1990s)",
+			input:   "03-20-95",
+			want:    time.Date(1995, time.March, 20, 0, 0, 0, 0, time.UTC),
+			wantErr: false,
 		},
 		{
-			name:      "January format",
-			input:     "202501",
-			wantMonth: time.January,
-			wantYear:  2025,
-			wantErr:   false,
+			name:    "valid date boundary year 90",
+			input:   "01-01-90",
+			want:    time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
+			wantErr: false,
 		},
 		{
-			name:      "with extra spaces",
-			input:     "  202403  ",
-			wantMonth: time.March,
-			wantYear:  2024,
-			wantErr:   false,
+			name:    "valid date boundary year 89 (2089)",
+			input:   "12-31-89",
+			want:    time.Date(2089, time.December, 31, 0, 0, 0, 0, time.UTC),
+			wantErr: false,
 		},
 		{
-			name:    "invalid format - with space",
-			input:   "2024 11",
+			name:    "invalid format YYYY-MM-DD",
+			input:   "2024-06-15",
 			wantErr: true,
 		},
 		{
-			name:    "invalid format - month name",
-			input:   "November 2024",
-			wantErr: true,
-		},
-		{
-			name:    "invalid month - 13",
-			input:   "202413",
-			wantErr: true,
-		},
-		{
-			name:    "invalid month - 00",
-			input:   "202400",
+			name:    "text instead of date",
+			input:   "test-data",
 			wantErr: true,
 		},
 		{
@@ -418,18 +432,13 @@ func TestParseNordeaAvgMonth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := parseNordeaAvgMonth(tt.input)
+			got, err := parseNordeaHistoricDate(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseNordeaAvgMonth() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("parseNordeaHistoricDate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr {
-				if got.Month != tt.wantMonth {
-					t.Errorf("parseNordeaAvgMonth() month = %v, want %v", got.Month, tt.wantMonth)
-				}
-				if got.Year != tt.wantYear {
-					t.Errorf("parseNordeaAvgMonth() year = %v, want %v", got.Year, tt.wantYear)
-				}
+			if !tt.wantErr && !got.Equal(tt.want) {
+				t.Errorf("parseNordeaHistoricDate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
