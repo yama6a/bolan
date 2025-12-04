@@ -13,6 +13,7 @@
 - [x] Stabelo
 - [x] Ikano Bank
 - [x] Ålandsbanken
+- [x] Nordnet
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -33,7 +34,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 11 | Marginalen Bank | marginalen.se | To Add | Specialty lender, complex rate structure (4.46-10.56%) |
 | 12 | Nordax Bank/NOBA Bank Group | nordax.se | To Add | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%) |
 | 13 | Nordea | nordea.se | **Done** | Big Four |
-| 14 | Nordnet | nordnet.se | To Add | Variable rate only (1.80-3.31%) |
+| 14 | Nordnet | nordnet.se | **Done** | Via Stabelo, multiple binding periods |
 | 15 | SBAB | sbab.se | **Done** | State-owned, highest satisfaction, full term range |
 | 16 | SEB | seb.se | **Done** | Big Four |
 | 17 | Skandiabanken | skandiabanken.se | **Done** | Insurance bank, terms up to 5 år |
