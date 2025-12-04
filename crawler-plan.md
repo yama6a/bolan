@@ -12,6 +12,7 @@
 - [x] Skandiabanken
 - [x] Stabelo
 - [x] Ikano Bank
+- [x] Ålandsbanken
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -39,7 +40,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 18 | Stabelo | stabelo.se | To Add | Also via Avanza/Bolån+ and Nordnet, data currently missing |
 | 19 | Svea Bank | svea.com | To Add | Specialty lender, variable rate only (from 5.65%) |
 | 20 | Swedbank | swedbank.se | **Done** | Big Four, largest market share (~25%), full term range |
-| 21 | Ålandsbanken | alandsbanken.se | To Add | Finnish bank in Sweden, full term range |
+| 21 | Ålandsbanken | alandsbanken.se | **Done** | Finnish bank in Sweden, full term range |
 
 ## Banks by Category
 
@@ -394,25 +395,29 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ### 7. Ålandsbanken
 
-**Status**: Ready to implement
+**Status**: ✅ Implemented
 **Difficulty**: Easy
 **HTTP Method**: Basic net/http (curl works)
 
 **URLs**:
-- Rates Page: `https://www.alandsbanken.se/bolan/bolanerantor`
+- Rates Page: `https://www.alandsbanken.se/banktjanster/lana-pengar/bolan`
 
 **Data Format**: Static HTML tables
 
 **Tables Found**:
-1. "Aktuella bolåneräntor" - List rates with Bindningstid, Ränta, Senast ändrad
-2. "Snitträntor" - Average rates by month
+1. "Aktuella räntor:" - List rates with Bindningstid, Räntesats %, Senaste ränteförändring, Förändring %
+2. "Genomsnittlig bolåneränta" - Average rates (only 3 mån data available)
 
 **Terms Available**: 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 7 år, 10 år
 
 **Implementation Notes**:
 - Standard HTML table parsing
+- Both list and average rates on same page
 - Finnish bank operating in Sweden
 - Requires 1M SEK depot for rate discount
+- List rate date format: "YYYY.MM.DD"
+- Average rate month format: "Månad YYYY" (e.g., "Oktober 2025")
+- Only publishes average rates for 3 mån term
 
 ---
 
