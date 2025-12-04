@@ -467,37 +467,145 @@ The payload contains rate data in a structured format with:
 ### 10. Stabelo
 
 **Status**: Ready to implement
-**Difficulty**: Easy
-**HTTP Method**: Basic net/http (JSON API)
+**Difficulty**: Medium
+**HTTP Method**: Basic net/http (JSON embedded in HTML via Remix.js)
 
 **URLs**:
-- Rates Page: `https://www.stabelo.se/bolan/`
-- Rate Table API: `https://www.stabelo.se/api/rate-table`
+- Rate Table Page: `https://api.stabelo.se/rate-table/`
 
-**Data Format**: JSON API
+**Data Format**: JSON embedded in HTML (Remix.js server-rendered)
 
-**JSON Structure**:
+**How Stabelo Rates Work**:
+
+Stabelo does NOT have traditional "list rates". Instead, they use a **personalized pricing model** with 864 rate entries based on:
+1. **Loan Amount** - Volume discounts for larger loans (12 thresholds from 0 to 10M SEK)
+2. **LTV Ratio** - Risk-based pricing (6 tiers: base, 60%, 65%, 70%, 75%, 80%)
+3. **Green Loan** - 0.10% discount for EPC class A/B properties
+4. **Rate Fixation** - 3M, 1Y, 2Y, 3Y, 5Y, 10Y
+
+**List Rate Definition**:
+
+For comparison purposes, the "list rate" is the **worst-case rate** (highest rate offered):
+- Loan amount: ≤500k SEK (smallest tier = highest rate)
+- LTV: >80% (uses "no LTV" base tier = highest rate)
+- No green loan discount
+
+**Rate Data Structure** (embedded in `window.__remixContext`):
+
 ```json
 {
-  "rates": [
-    {
-      "term": "3_months",
-      "ltv_tiers": [
-        {"max_ltv": 50, "rate": 1.89},
-        {"max_ltv": 60, "rate": 2.09}
-      ]
-    }
-  ]
+  "rateTable": {
+    "interest_rate_items": [
+      {
+        "interest_rate": {
+          "bps": 333,
+          "display": "3,33 %"
+        },
+        "product_configuration": {
+          "rate_fixation": "3M",
+          "product_amount": {
+            "value": 0
+          }
+          // No "ltv" field = base tier (>80% LTV)
+          // No "epc_classification" = standard rate
+        }
+      }
+    ]
+  }
 }
 ```
 
-**Terms Available**: 3 mån, 1 år, 2 år, 3 år, 5 år, 10 år
+**List Rate Extraction Logic**:
 
-**Implementation Notes**:
-- Clean JSON API for rate data
-- Rates vary by LTV tier (≤50%, 50-60%)
-- Fintech lender, also available via Avanza and Nordnet
-- Max LTV 60%
+Filter for entries where:
+- `product_configuration.ltv` is **absent** (not present in JSON)
+- `product_configuration.epc_classification` is **absent** (not present in JSON)
+- `product_configuration.product_amount.value` is `0` (smallest loan tier)
+
+This gives the worst-case rate for each term.
+
+**Volume Discount Tiers** (loan amount → rate reduction for 3M term):
+
+| Loan Amount | Rate    | Discount vs Base |
+|-------------|---------|------------------|
+| 0-500k      | 3.33%   | Base (list rate) |
+| 600k        | 3.27%   | -0.06%           |
+| 700k        | 3.21%   | -0.12%           |
+| 800k        | 3.16%   | -0.17%           |
+| 900k        | 3.10%   | -0.23%           |
+| 1M          | 2.94%   | -0.39%           |
+| 1.5M        | 2.86%   | -0.47%           |
+| 2M+         | 2.75%   | -0.58%           |
+
+**LTV Tiers** (for 2M loan, 3M term):
+
+| LTV Range | Rate    | Premium vs Best |
+|-----------|---------|-----------------|
+| ≤75%      | 2.54%   | Best rate       |
+| 75-80%    | 2.67%   | +0.13%          |
+| >80%      | 2.75%   | +0.21%          |
+
+**Terms Available**: 3M, 1Y, 2Y, 3Y, 5Y, 10Y
+
+**Implementation Plan**:
+
+```bash
+# Step 1: Fetch the rate table HTML page
+curl -s 'https://api.stabelo.se/rate-table/' -H 'User-Agent: Mozilla/5.0' > stabelo.html
+
+# Step 2: Extract the Remix context JSON from the HTML
+# Look for: window.__remixContext = {...}
+# The data is in: __remixContext.state.loaderData["routes/_index"].rateTable.interest_rate_items
+
+# Step 3: Parse JSON and filter for list rates
+# Filter criteria:
+#   - No "ltv" field in product_configuration
+#   - No "epc_classification" field in product_configuration
+#   - product_amount.value == 0
+
+# Step 4: Extract rate for each rate_fixation (3M, 1Y, 2Y, 3Y, 5Y, 10Y)
+```
+
+**Go Implementation Approach**:
+
+1. Fetch HTML from `https://api.stabelo.se/rate-table/`
+2. Use regex to extract JSON from `<script>` tag containing `window.__remixContext`
+3. Parse the JSON and navigate to `state.loaderData["routes/_index"].rateTable.interest_rate_items`
+4. Filter entries: no `ltv`, no `epc_classification`, `product_amount.value == 0`
+5. Map `rate_fixation` to `model.Term` and `interest_rate.bps/100` to rate
+
+**Average Rates (PDF)**:
+
+Stabelo publishes average rates in a PDF document linked from `https://www.stabelo.se/bolanerantor`.
+
+**PDF URL Pattern**: `https://www.stabelo.se/documents/StabeloGenomsnittsräntor{Month}{Year}.pdf`
+- Month: Swedish month name (januari, februari, mars, april, maj, juni, juli, augusti, september, oktober, november, december)
+- Example: `StabeloGenomsnittsräntorOktober2025.pdf`
+
+**Extraction Steps**:
+```bash
+# Step 1: Find PDF URL from page
+PDF_PATH=$(curl -s 'https://www.stabelo.se/bolanerantor' -H 'User-Agent: Mozilla/5.0' \
+  | grep -oP 'href="\K[^"]*[Gg]enomsnitts[^"]*\.pdf(?=")' | head -1)
+
+# Step 2: Download PDF
+curl -sL "https://www.stabelo.se/$PDF_PATH" -H 'User-Agent: Mozilla/5.0' -o stabelo_avg.pdf
+```
+
+**PDF Table Format**:
+| Bindningstid | 3 mån | 1 år | 2 år | 3 år | 5 år | 10 år |
+|--------------|-------|------|------|------|------|-------|
+| oktober 2025 | 2,61% | 2,52% | 2,89% | 2,96% | 3,20% | - |
+
+- Missing values shown as "-"
+- Rates in Swedish decimal format (comma separator)
+- Data goes back to November 2017
+- Updated on 5th business day each month
+
+**Notes**:
+- Max LTV is 85% (not 60% as previously thought)
+- The current implementation parses HTML buttons, but should be updated to extract from Remix JSON for accuracy
+- Average rates require PDF parsing (Go library like `pdfcpu` or `unipdf`)
 
 ---
 

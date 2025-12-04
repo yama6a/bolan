@@ -21,6 +21,9 @@ var _ http.Client = &ClientMock{}
 //			FetchFunc: func(url string, headers map[string]string) (string, error) {
 //				panic("mock out the Fetch method")
 //			},
+//			FetchRawFunc: func(url string, headers map[string]string) ([]byte, error) {
+//				panic("mock out the FetchRaw method")
+//			},
 //		}
 //
 //		// use mockedClient in code that requires http.Client
@@ -31,6 +34,9 @@ type ClientMock struct {
 	// FetchFunc mocks the Fetch method.
 	FetchFunc func(url string, headers map[string]string) (string, error)
 
+	// FetchRawFunc mocks the FetchRaw method.
+	FetchRawFunc func(url string, headers map[string]string) ([]byte, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// Fetch holds details about calls to the Fetch method.
@@ -40,8 +46,16 @@ type ClientMock struct {
 			// Headers is the headers argument value.
 			Headers map[string]string
 		}
+		// FetchRaw holds details about calls to the FetchRaw method.
+		FetchRaw []struct {
+			// URL is the url argument value.
+			URL string
+			// Headers is the headers argument value.
+			Headers map[string]string
+		}
 	}
-	lockFetch sync.RWMutex
+	lockFetch    sync.RWMutex
+	lockFetchRaw sync.RWMutex
 }
 
 // Fetch calls FetchFunc.
@@ -77,5 +91,41 @@ func (mock *ClientMock) FetchCalls() []struct {
 	mock.lockFetch.RLock()
 	calls = mock.calls.Fetch
 	mock.lockFetch.RUnlock()
+	return calls
+}
+
+// FetchRaw calls FetchRawFunc.
+func (mock *ClientMock) FetchRaw(url string, headers map[string]string) ([]byte, error) {
+	if mock.FetchRawFunc == nil {
+		panic("ClientMock.FetchRawFunc: method is nil but Client.FetchRaw was just called")
+	}
+	callInfo := struct {
+		URL     string
+		Headers map[string]string
+	}{
+		URL:     url,
+		Headers: headers,
+	}
+	mock.lockFetchRaw.Lock()
+	mock.calls.FetchRaw = append(mock.calls.FetchRaw, callInfo)
+	mock.lockFetchRaw.Unlock()
+	return mock.FetchRawFunc(url, headers)
+}
+
+// FetchRawCalls gets all the calls that were made to FetchRaw.
+// Check the length with:
+//
+//	len(mockedClient.FetchRawCalls())
+func (mock *ClientMock) FetchRawCalls() []struct {
+	URL     string
+	Headers map[string]string
+} {
+	var calls []struct {
+		URL     string
+		Headers map[string]string
+	}
+	mock.lockFetchRaw.RLock()
+	calls = mock.calls.FetchRaw
+	mock.lockFetchRaw.RUnlock()
 	return calls
 }

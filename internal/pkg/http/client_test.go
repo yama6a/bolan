@@ -1,3 +1,4 @@
+//nolint:revive,nolintlint // var-naming: package name matches the package being tested
 package http
 
 import (

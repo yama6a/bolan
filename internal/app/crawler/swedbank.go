@@ -313,7 +313,7 @@ func parseSwedbankAvgMonth(headerStr string) (*model.AvgMonth, error) {
 	}
 
 	return &model.AvgMonth{
-		Year:  uint(year), //nolint:gosec // year is validated by regex to be 4 digits
+		Year:  uint(year),
 		Month: month,
 	}, nil
 }
@@ -338,7 +338,7 @@ func parseSwedbankHistoricMonth(monthStr string) (*model.AvgMonth, error) {
 	}
 
 	return &model.AvgMonth{
-		Year:  uint(year), //nolint:gosec // year is validated by regex to be 4 digits
+		Year:  uint(year),
 		Month: month,
 	}, nil
 }

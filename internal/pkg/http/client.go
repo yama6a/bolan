@@ -20,6 +20,10 @@ type Client interface {
 	// Fetch retrieves content from a URL with optional custom headers.
 	// Response body is decoded as UTF-8.
 	Fetch(url string, headers map[string]string) (string, error)
+
+	// FetchRaw retrieves raw binary content from a URL with optional custom headers.
+	// Use this for binary files like PDFs.
+	FetchRaw(url string, headers map[string]string) ([]byte, error)
 }
 
 // client implements the Client interface using standard net/http.
@@ -29,6 +33,8 @@ type client struct {
 }
 
 // NewClient creates a new Client wrapping the provided http.Client.
+//
+//nolint:ireturn // returns interface for dependency injection
 func NewClient(httpClient *gohttp.Client, timeout time.Duration) Client {
 	return &client{
 		httpClient: httpClient,
@@ -75,6 +81,46 @@ func (c *client) Fetch(url string, headers map[string]string) (string, error) {
 	}
 
 	return string(body), nil
+}
+
+// FetchRaw retrieves raw binary content from a URL with optional custom headers.
+func (c *client) FetchRaw(url string, headers map[string]string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	req, err := gohttp.NewRequestWithContext(ctx, gohttp.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	browserInfo := randomBrowserInfo()
+	defaultHeaders := map[string]string{
+		"Accept":          "*/*",
+		"Accept-Language": "en-US,en;q=0.9",
+		"Connection":      "keep-alive",
+		"User-Agent":      browserInfo.UserAgent,
+		"Cache-Control":   "no-cache",
+	}
+	for key, value := range defaultHeaders {
+		req.Header.Set(key, value)
+	}
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to perform request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	return body, nil
 }
 
 // browserInfo contains User-Agent and Sec-Ch-Ua headers that must have matching versions.

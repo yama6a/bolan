@@ -230,7 +230,7 @@ func parseICAAvgMonth(monthStr string) (*model.AvgMonth, error) {
 	month, _ := strconv.Atoi(matches[2])
 
 	return &model.AvgMonth{
-		Year:  uint(year), //nolint:gosec // year is validated by regex to be 4 digits (0000-9999)
+		Year:  uint(year),
 		Month: time.Month(month),
 	}, nil
 }

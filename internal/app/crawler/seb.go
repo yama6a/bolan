@@ -230,7 +230,7 @@ func parseReferenceMonth(data uint, regex *regexp.Regexp) (model.AvgMonth, error
 	}
 
 	return model.AvgMonth{
-		Year:  uint(year), //nolint:gosec // year will never be negative due to the above checks
+		Year:  uint(year),
 		Month: time.Month(month),
 	}, nil
 }

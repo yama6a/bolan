@@ -243,7 +243,7 @@ func parseSBABAvgPeriod(period string) (model.AvgMonth, error) {
 	}
 
 	return model.AvgMonth{
-		Year:  uint(year), //nolint:gosec // year validated by regex
+		Year:  uint(year),
 		Month: time.Month(month),
 	}, nil
 }
