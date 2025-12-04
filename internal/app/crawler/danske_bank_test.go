@@ -12,6 +12,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// testInvalidJSON is a shared test constant for mocking invalid JSON responses.
+const testInvalidJSON = "invalid json"
+
 func loadGoldenFile(t *testing.T, filename string) string {
 	t.Helper()
 

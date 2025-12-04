@@ -75,7 +75,7 @@ func TestHandelsbankenCrawler_Crawl(t *testing.T) {
 			name: "invalid JSON returns no list rates",
 			mockFetch: func(url string, _ map[string]string) (string, error) {
 				if url == handelsbankenListRateURL {
-					return "invalid json", nil
+					return testInvalidJSON, nil
 				}
 				return avgRatesJSON, nil
 			},

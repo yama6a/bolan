@@ -9,6 +9,9 @@
 - [x] Handelsbanken
 - [x] Swedbank
 - [x] Bluestep
+- [x] Skandiabanken
+- [x] Stabelo
+- [x] Ikano Bank
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -22,7 +25,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 4 | Handelsbanken | handelsbanken.se | **Done** | Big Four, full term range |
 | 5 | Hypoteket | hypoteket.com | To Add | Digital-first, data currently missing on Konsumenternas |
 | 6 | ICA Banken | icabanken.se | **Done** | Full term range |
-| 7 | Ikano Bank | ikanobank.se | To Add | Uses Borgo, full term range |
+| 7 | Ikano Bank | ikanobank.se | **Done** | Uses Borgo, full term range |
 | 8 | JAK Medlemsbank | jak.se | To Add | Ethical bank, only 3 mån and 1 år terms |
 | 9 | Landshypotek | landshypotek.se | To Add | Also via Avanza/Bolån+, terms up to 5 år |
 | 10 | Länsförsäkringar (LF) | lansforsakringar.se | To Add | Major player, full term range |
@@ -58,7 +61,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Landshypotek Bank | Agricultural/rural property focus | To Add |
 | Ålandsbanken | Finnish bank operating in Sweden | To Add |
 | ICA Banken | Uses Borgo | **Done** |
-| Ikano Bank | Uses Borgo | To Add |
+| Ikano Bank | Uses Borgo | **Done** |
 
 ### Digital/Fintech Mortgage Providers
 | Bank | Notes | Status |
@@ -86,12 +89,12 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 4. **Länsförsäkringar Bank** - Major player, high satisfaction
 
 ### Medium Priority (Significant presence)
-5. **Skandiabanken** - Major insurance bank
+5. ~~**Skandiabanken** - Major insurance bank~~ **Done**
 6. **Landshypotek Bank** - Niche but significant
 7. **Ålandsbanken** - Listed on all comparison sites
-8. **Ikano Bank** - Uses Borgo
+8. ~~**Ikano Bank** - Uses Borgo~~ **Done**
 9. **Hypoteket** - Growing fintech player
-10. **Stabelo** - Growing fintech player
+10. ~~**Stabelo** - Growing fintech player~~ **Done**
 
 ### Lower Priority (Limited products or specialty)
 11. **Avanza Bank** - Variable rate only
@@ -165,8 +168,8 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ## Summary
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 11 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken, Stabelo, Bluestep)
-- **Remaining to add**: 10
+- **Already implemented**: 12 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken, Stabelo, Bluestep, Ikano Bank)
+- **Remaining to add**: 9
 
 ---
 
@@ -415,24 +418,44 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ### 8. Ikano Bank
 
-**Status**: Ready to implement
+**Status**: ✅ Implemented
 **Difficulty**: Easy
-**HTTP Method**: Basic net/http (curl works)
+**HTTP Method**: Basic net/http (JSON API + HTML)
 
 **URLs**:
-- Rates Page: `https://www.ikanobank.se/privat/bolan/bolaneranta/`
+- List Rates API: `https://ikanobank.se/api/interesttable/gettabledata`
+- Average Rates Page: `https://ikanobank.se/bolan/bolanerantor`
 
-**Data Format**: Static HTML tables
+**Note:** Use non-www URLs - the www version redirects and the HTTP client doesn't follow redirects.
 
-**Tables Found**:
-1. List rates table with Bindningstid, Listränta, Senast ändrad
-2. Average rates table with monthly snitträntor
+**Data Format**: JSON API for list rates, HTML table for average rates
+
+**List Rates JSON Structure**:
+```json
+{
+  "success": true,
+  "listData": [
+    {
+      "rateFixationPeriod": "3 mån",
+      "listPriceInterestRate": "3.4800",
+      "effectiveInterestRate": "3.5400"
+    }
+  ]
+}
+```
+
+**Average Rates Table**:
+- Located after text "Snitträntor för bolån"
+- Columns: Månad | 3 mån | 1 år | 2 år | 3 år | 4 år | 5 år | 7 år | 10 år
+- Month format: "YYYY MM" (e.g., "2025 01")
+- Rate format: Swedish decimal with comma (e.g., "3,61 %")
 
 **Terms Available**: 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år, 7 år, 10 år
 
 **Implementation Notes**:
-- Uses Borgo (same as ICA Banken) - similar table structure
-- Standard HTML parsing
+- Uses Borgo (same as ICA Banken)
+- List rates via JSON API (discovered by inspecting JavaScript source)
+- Average rates via HTML table parsing
 - No kontantinsatslån available
 
 ---
