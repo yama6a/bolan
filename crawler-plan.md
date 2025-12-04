@@ -31,7 +31,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 14 | Nordnet | nordnet.se | To Add | Variable rate only (1.80-3.31%) |
 | 15 | SBAB | sbab.se | **Done** | State-owned, highest satisfaction, full term range |
 | 16 | SEB | seb.se | **Done** | Big Four |
-| 17 | Skandiabanken | skandiabanken.se | To Add | Insurance bank, terms up to 5 år |
+| 17 | Skandiabanken | skandiabanken.se | **Done** | Insurance bank, terms up to 5 år |
 | 18 | Stabelo | stabelo.se | To Add | Also via Avanza/Bolån+ and Nordnet, data currently missing |
 | 19 | Svea Bank | svea.com | To Add | Specialty lender, variable rate only (from 5.65%) |
 | 20 | Swedbank | swedbank.se | **Done** | Big Four, largest market share (~25%), full term range |
@@ -52,7 +52,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 |------|-------|--------|
 | SBAB | ~8.5% share, state-owned, highest customer satisfaction | **Done** |
 | Länsförsäkringar Bank | Insurance company's bank, high satisfaction | To Add |
-| Skandiabanken | Insurance/pension company's bank | To Add |
+| Skandiabanken | Insurance/pension company's bank | **Done** |
 | Danske Bank | - | **Done** |
 | Landshypotek Bank | Agricultural/rural property focus | To Add |
 | Ålandsbanken | Finnish bank operating in Sweden | To Add |
@@ -337,7 +337,7 @@ Maximum loan-to-value ratios for each bank. Most banks follow the standard Swedi
 
 ### 5. Skandiabanken
 
-**Status**: Ready to implement
+**Status**: **Done** ✅
 **Difficulty**: Easy
 **HTTP Method**: Basic net/http (curl works)
 

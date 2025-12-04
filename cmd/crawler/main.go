@@ -36,6 +36,7 @@ func main() {
 		crawler.NewNordeaCrawler(httpClient, logger.Named("nordea-crawler")),
 		crawler.NewHandelsbankenCrawler(httpClient, logger.Named("handelsbanken-crawler")),
 		crawler.NewSBABCrawler(httpClient, logger.Named("sbab-crawler")),
+		crawler.NewSkandiaCrawler(httpClient, logger.Named("skandia-crawler")),
 		crawler.NewSwedbankCrawler(httpClient, logger.Named("swedbank-crawler")),
 		crawler.NewStabeloCrawler(httpClient, logger.Named("stabelo-crawler")),
 	}

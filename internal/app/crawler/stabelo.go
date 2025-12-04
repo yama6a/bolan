@@ -45,14 +45,12 @@ func NewStabeloCrawler(httpClient http.Client, logger *zap.Logger) *StabeloCrawl
 // Crawl fetches and parses Stabelo mortgage rates from all sources.
 func (c *StabeloCrawler) Crawl(channel chan<- model.InterestSet) {
 	crawlTime := time.Now().UTC()
-	var allRates []model.InterestSet
 
 	// Fetch list rates and LTV-discounted rates
 	rates, err := c.fetchRates(crawlTime)
 	if err != nil {
 		c.logger.Error("failed fetching Stabelo rates", zap.Error(err))
 	} else {
-		allRates = append(allRates, rates...)
 		for _, set := range rates {
 			channel <- set
 		}
@@ -63,7 +61,6 @@ func (c *StabeloCrawler) Crawl(channel chan<- model.InterestSet) {
 	if err != nil {
 		c.logger.Warn("failed fetching Stabelo average rates", zap.Error(err))
 	} else {
-		allRates = append(allRates, avgRates...)
 		for _, set := range avgRates {
 			channel <- set
 		}

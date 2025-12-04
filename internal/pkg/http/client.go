@@ -33,7 +33,7 @@ type client struct {
 }
 
 // NewClient creates a new Client wrapping the provided http.Client.
-func NewClient(httpClient *gohttp.Client, timeout time.Duration) Client { //nolint:ireturn // returns interface for dependency injection
+func NewClient(httpClient *gohttp.Client, timeout time.Duration) Client { //nolint:ireturn,nolintlint // returns interface for dependency injection
 	return &client{
 		httpClient: httpClient,
 		timeout:    timeout,
