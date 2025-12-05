@@ -15,6 +15,7 @@
 - [x] Ikano Bank
 - [x] Ålandsbanken
 - [x] Nordnet
+- [x] Hypoteket
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -26,7 +27,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 2  | Bluestep/Enity Bank Group   | bluestep.se         | **Done** | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
 | 3  | Danske Bank                 | danskebank.se       | **Done** | Full term range                                                       |
 | 4  | Handelsbanken               | handelsbanken.se    | **Done** | Big Four, full term range                                             |
-| 5  | Hypoteket                   | hypoteket.com       | To Add   | Digital-first, data currently missing on Konsumenternas               |
+| 5  | Hypoteket                   | hypoteket.com       | **Done** | Digital-first, förhandlingsfri ränta, 65% max LTV                     |
 | 6  | ICA Banken                  | icabanken.se        | **Done** | Full term range                                                       |
 | 7  | Ikano Bank                  | ikanobank.se        | **Done** | Uses Borgo, full term range                                           |
 | 8  | JAK Medlemsbank             | jak.se              | To Add   | Ethical bank, only 3 mån and 1 år terms                               |
@@ -72,7 +73,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 | Bank        | Notes                                 | Status |
 |-------------|---------------------------------------|--------|
-| Hypoteket   | Digital-first, negotiation-free rates | To Add |
+| Hypoteket   | Digital-first, negotiation-free rates | **Done** |
 | Stabelo     | Fintech, via Avanza/Nordnet           | To Add |
 | Avanza Bank | Superbolånet, variable only           | To Add |
 | Nordnet     | Variable only, uses other providers   | To Add |
@@ -102,7 +103,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 6. ~~**Landshypotek Bank** - Niche but significant~~ **Done**
 7. **Ålandsbanken** - Listed on all comparison sites
 8. ~~**Ikano Bank** - Uses Borgo~~ **Done**
-9. **Hypoteket** - Growing fintech player
+9. ~~**Hypoteket** - Growing fintech player~~ **Done**
 10. ~~**Stabelo** - Growing fintech player~~ **Done**
 
 ### Lower Priority (Limited products or specialty)
@@ -190,9 +191,9 @@ fintech/digital lenders have stricter requirements.
 ## Summary
 
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 12 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
-  Stabelo, Bluestep, Ikano Bank)
-- **Remaining to add**: 9
+- **Already implemented**: 16 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
+  Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket)
+- **Remaining to add**: 5
 
 ---
 

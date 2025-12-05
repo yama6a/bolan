@@ -10,6 +10,7 @@ import (
 	"github.com/yama6a/bolan-compare/internal/app/crawler/bluestep"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/danskebank"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/handelsbanken"
+	"github.com/yama6a/bolan-compare/internal/app/crawler/hypoteket"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/icabanken"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/ikanobank"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/landshypotek"
@@ -50,6 +51,7 @@ func main() {
 		icabanken.NewICABankenCrawler(httpClient, logger.Named("ica-banken-crawler")),
 		nordea.NewNordeaCrawler(httpClient, logger.Named("nordea-crawler")),
 		handelsbanken.NewHandelsbankenCrawler(httpClient, logger.Named("handelsbanken-crawler")),
+		hypoteket.NewHypoteketCrawler(httpClient, logger.Named("hypoteket-crawler")),
 		sbab.NewSBABCrawler(httpClient, logger.Named("sbab-crawler")),
 		skandia.NewSkandiaCrawler(httpClient, logger.Named("skandia-crawler")),
 		swedbank.NewSwedbankCrawler(httpClient, logger.Named("swedbank-crawler")),
