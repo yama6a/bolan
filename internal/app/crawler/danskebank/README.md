@@ -17,9 +17,10 @@ curl -s 'https://danskebank.se/privat/produkter/bolan/relaterat/aktuella-bolaner
 table)
 
 **Table structure (4 columns):**
-| Bindningstid | Ändrad | Förändring | Listränta |
-|--------------|--------|------------|-----------|
-| 3 mån | 2025-10-06 | -0,20 | 3.33% |
+
+| Bindningstid | Ändrad     | Förändring | Listränta |
+|--------------|------------|------------|-----------|
+| 3 mån        | 2025-10-06 | -0,20      | 3.33%     |
 
 **Data formats:**
 
@@ -32,6 +33,7 @@ table)
 **Table identifier:** Search for text "Historiska snitträntor" before the table
 
 **Table structure:**
+
 | Period | 3 mån | 1 år | 2 år | 3 år | ...
 |--------|-------|------|------|------|
 | Augusti 2021 | 1,23 | 1,44 | 1,66 | ... |

@@ -6,21 +6,21 @@ This document describes general information about crawler data sources and HTTP 
 
 ## Overview
 
-| Bank          | Package       | Data Sources | Rate Types     | Auth Required           | Min Headers            |
-|---------------|---------------|--------------|----------------|-------------------------|------------------------|
-| SEB           | `seb`         | 2 JSON APIs  | List + Average | Yes (API key + Referer) | X-API-Key, Referer     |
-| Nordea        | `nordea`      | 2 HTML pages | List + Average | No                      | User-Agent             |
-| ICA Banken    | `icabanken`   | 1 HTML page  | List + Average | No                      | User-Agent, Sec-Ch-Ua* |
-| Danske Bank   | `danskebank`  | 1 HTML page  | List + Average | No                      | User-Agent             |
-| Handelsbanken | `handelsbanken` | 2 JSON APIs | List + Average | No                      | User-Agent             |
-| SBAB          | `sbab`        | 2 JSON APIs  | List + Average | No                      | User-Agent             |
-| Skandiabanken | `skandia`     | 2 HTML+JSON  | List + Average | No                      | User-Agent             |
-| Swedbank      | `swedbank`    | 2 HTML pages | List + Average | No                      | User-Agent             |
-| Stabelo       | `stabelo`     | 1 HTML page (Remix JSON) + 1 PDF | List + Average | No               | User-Agent             |
-| Bluestep      | `bluestep`    | 2 HTML pages | List + Average | No                      | User-Agent             |
-| Ikano Bank    | `ikanobank`   | 1 JSON API + 1 HTML page | List + Average | No                      | User-Agent             |
-| Ålandsbanken  | `alandsbanken` | 1 HTML page  | List + Average | No                      | User-Agent             |
-| Nordnet       | `nordnet`      | 1 JSON API   | List only      | No                      | User-Agent             |
+| Bank          | Package         | Data Sources                     | Rate Types     | Auth Required           | Min Headers            |
+|---------------|-----------------|----------------------------------|----------------|-------------------------|------------------------|
+| SEB           | `seb`           | 2 JSON APIs                      | List + Average | Yes (API key + Referer) | X-API-Key, Referer     |
+| Nordea        | `nordea`        | 2 HTML pages                     | List + Average | No                      | User-Agent             |
+| ICA Banken    | `icabanken`     | 1 HTML page                      | List + Average | No                      | User-Agent, Sec-Ch-Ua* |
+| Danske Bank   | `danskebank`    | 1 HTML page                      | List + Average | No                      | User-Agent             |
+| Handelsbanken | `handelsbanken` | 2 JSON APIs                      | List + Average | No                      | User-Agent             |
+| SBAB          | `sbab`          | 2 JSON APIs                      | List + Average | No                      | User-Agent             |
+| Skandiabanken | `skandia`       | 2 HTML+JSON                      | List + Average | No                      | User-Agent             |
+| Swedbank      | `swedbank`      | 2 HTML pages                     | List + Average | No                      | User-Agent             |
+| Stabelo       | `stabelo`       | 1 HTML page (Remix JSON) + 1 PDF | List + Average | No                      | User-Agent             |
+| Bluestep      | `bluestep`      | 2 HTML pages                     | List + Average | No                      | User-Agent             |
+| Ikano Bank    | `ikanobank`     | 1 JSON API + 1 HTML page         | List + Average | No                      | User-Agent             |
+| Ålandsbanken  | `alandsbanken`  | 1 HTML page                      | List + Average | No                      | User-Agent             |
+| Nordnet       | `nordnet`       | 1 JSON API                       | List only      | No                      | User-Agent             |
 
 \* ICA Banken requires matching `User-Agent` and `Sec-Ch-Ua` headers (Chrome version must match in both)
 
@@ -89,13 +89,16 @@ All banks use Swedish terms that are parsed to internal term codes:
 
 ### List Rates (Listräntor)
 
-List rates are the advertised interest rates published by banks. These represent the starting point for negotiations and change periodically (typically weekly or monthly).
+List rates are the advertised interest rates published by banks. These represent the starting point for negotiations and
+change periodically (typically weekly or monthly).
 
 ### Average Rates (Snitträntor)
 
-Average rates (also called "genomsnittsräntor") are historical monthly averages of actual rates granted to customers. Swedish banks are required by the Financial Supervisory Authority (Finansinspektionen) to publish these rates monthly.
+Average rates (also called "genomsnittsräntor") are historical monthly averages of actual rates granted to customers.
+Swedish banks are required by the Financial Supervisory Authority (Finansinspektionen) to publish these rates monthly.
 
 Average rates are always lower than list rates because:
+
 1. Customers negotiate discounts from list rates
 2. Banks offer volume and LTV-based discounts
 3. Special promotions and relationship pricing
@@ -120,9 +123,11 @@ go test ./internal/app/crawler/seb/
 
 ### Golden Files
 
-Golden files are real HTML/JSON/XLSX/PDF files downloaded from bank websites. They enable deterministic testing without making live HTTP requests.
+Golden files are real HTML/JSON/XLSX/PDF files downloaded from bank websites. They enable deterministic testing without
+making live HTTP requests.
 
 **Important:**
+
 - Always use real data from bank websites - never create fake test data
 - Golden files should be refreshed periodically to ensure crawlers handle current website structures
 - See each crawler's README.md for specific refresh commands
@@ -152,27 +157,27 @@ mkdir -p internal/app/crawler/{bankname}/testdata
 package bankname
 
 import (
-    "github.com/yama6a/bolan-compare/internal/pkg/http"
-    "github.com/yama6a/bolan-compare/internal/pkg/model"
-    "go.uber.org/zap"
+	"github.com/yama6a/bolan-compare/internal/pkg/http"
+	"github.com/yama6a/bolan-compare/internal/pkg/model"
+	"go.uber.org/zap"
 )
 
 const (
-    bankNameURL = "https://..."
-    bankName model.Bank = "Bank Name"
+	bankNameURL            = "https://..."
+	bankName    model.Bank = "Bank Name"
 )
 
 type BankNameCrawler struct {
-    httpClient http.Client
-    logger     *zap.Logger
+	httpClient http.Client
+	logger     *zap.Logger
 }
 
 func NewBankNameCrawler(httpClient http.Client, logger *zap.Logger) *BankNameCrawler {
-    return &BankNameCrawler{httpClient: httpClient, logger: logger}
+	return &BankNameCrawler{httpClient: httpClient, logger: logger}
 }
 
 func (c *BankNameCrawler) Crawl(channel chan<- model.InterestSet) {
-    // Implementation
+	// Implementation
 }
 
 // Interface compliance check
@@ -187,8 +192,8 @@ Update `cmd/crawler/main.go`:
 import "github.com/yama6a/bolan-compare/internal/app/crawler/bankname"
 
 crawlers := []crawler.SiteCrawler{
-    // ...
-    bankname.NewBankNameCrawler(httpClient, logger.Named("bankname-crawler")),
+// ...
+bankname.NewBankNameCrawler(httpClient, logger.Named("bankname-crawler")),
 }
 ```
 
@@ -204,17 +209,21 @@ crawlers := []crawler.SiteCrawler{
 
 ### Dependency Injection
 
-All dependencies are instantiated in `cmd/crawler/main.go` and injected via constructors. Packages must not instantiate their own dependencies internally.
+All dependencies are instantiated in `cmd/crawler/main.go` and injected via constructors. Packages must not instantiate
+their own dependencies internally.
 
 ### Error Handling
 
-Crawlers should log errors and continue processing. Do not fail the entire crawl due to parse errors for individual rates.
+Crawlers should log errors and continue processing. Do not fail the entire crawl due to parse errors for individual
+rates.
 
-Use `c.logger.Warn()` for expected errors (e.g., parsing failures) and `c.logger.Error()` for unexpected errors (e.g., network failures).
+Use `c.logger.Warn()` for expected errors (e.g., parsing failures) and `c.logger.Error()` for unexpected errors (e.g.,
+network failures).
 
 ### Robustness
 
 Crawlers should be resilient to website changes:
+
 - Never hardcode rate values or term lists
 - Dynamically discover downloadable file links (XLSX, PDF)
 - Use table identifiers based on surrounding text, not structure

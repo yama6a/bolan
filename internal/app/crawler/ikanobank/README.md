@@ -1,6 +1,7 @@
 ## Ikano Bank
 
-Ikano Bank uses Borgo (same mortgage provider as ICA Banken) and has a JSON API for list rates and an HTML table for average rates.
+Ikano Bank uses Borgo (same mortgage provider as ICA Banken) and has a JSON API for list rates and an HTML table for
+average rates.
 
 ### List Rates API
 
@@ -53,8 +54,9 @@ curl -s 'https://ikanobank.se/bolan/bolanerantor' \
 **Table identifier:** Search for text "Snitträntor för bolån" before the table
 
 **Table structure:**
-| Månad | 3 mån | 1 år | 2 år | 3 år | 4 år | 5 år | 7 år | 10 år |
-|-------|-------|------|------|------|------|------|------|-------|
+
+| Månad   | 3 mån  | 1 år   | 2 år   | 3 år   | 4 år   | 5 år   | 7 år   | 10 år  |
+|---------|--------|--------|--------|--------|--------|--------|--------|--------|
 | 2025 01 | 3,61 % | 3,04 % | 2,97 % | 2,98 % | 3,04 % | 3,05 % | 3,27 % | 3,48 % |
 | 2024 12 | 3,71 % | 3,04 % | 2,90 % | 2,95 % | 2,97 % | 2,99 % | 3,22 % | 3,44 % |
 

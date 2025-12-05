@@ -30,10 +30,11 @@ curl -s 'https://www.icabanken.se/lana/bolan/bolanerantor/' \
 **Table identifier:** Search for text "Aktuella bolåneräntor" before the table
 
 **Table structure:**
-| Bindningstid | Ränta | Senast ändrad |
-|--------------|-------|---------------|
-| 3 mån | 3,33 % | 2025-10-06 |
-| 1 år | 3,44 % | 2025-07-10 |
+
+| Bindningstid | Ränta  | Senast ändrad |
+|--------------|--------|---------------|
+| 3 mån        | 3,33 % | 2025-10-06    |
+| 1 år         | 3,44 % | 2025-07-10    |
 
 **Data formats:**
 
@@ -46,10 +47,11 @@ curl -s 'https://www.icabanken.se/lana/bolan/bolanerantor/' \
 **Table identifier:** Search for text "Snitträntor för bolån" before the table
 
 **Table structure:**
-| Månad | 3 mån | 1 år | 2 år | 3 år | 4 år | 5 år | 7 år | 10 år |
-|-------|-------|------|------|------|------|------|------|-------|
-| 2025 11 | 2,65 | 2,84 | 2,84 | 2,90 | 2,99 | 3,07 | 3,34 | 3,30 |
-| 2025 10 | 2,68 | 2,92 | 2,93 | 3,00 | 3,10 | 3,19 | - | 3,57 |
+
+| Månad   | 3 mån | 1 år | 2 år | 3 år | 4 år | 5 år | 7 år | 10 år |
+|---------|-------|------|------|------|------|------|------|-------|
+| 2025 11 | 2,65  | 2,84 | 2,84 | 2,90 | 2,99 | 3,07 | 3,34 | 3,30  |
+| 2025 10 | 2,68  | 2,92 | 2,93 | 3,00 | 3,10 | 3,19 | -    | 3,57  |
 
 **Data formats:**
 

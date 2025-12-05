@@ -14,6 +14,7 @@
 ### List Rates (Listräntor)
 
 Published as a table with columns:
+
 - Bindningstid (binding period)
 - Ränta (rate)
 - Ändring (change)
@@ -26,6 +27,7 @@ Published as a table with columns:
 ### Average Rates (Snitträntor)
 
 Published as a table with columns:
+
 - Bindningstid (binding period)
 - Genomsnittlig ränta [month] [year] (average rate for the specified month)
 

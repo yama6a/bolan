@@ -14,10 +14,11 @@ curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor.html' \
 **Table identifier:** Search for text "Aktuella bolåneräntor – listpris" before the table
 
 **Table structure:**
-| Bindningstid | Ränta |
-|--------------|-------|
-| 3 mån | 3,05 % |
-| 1 år | 3,17 % |
+
+| Bindningstid | Ränta  |
+|--------------|--------|
+| 3 mån        | 3,05 % |
+| 1 år         | 3,17 % |
 
 **Data formats:**
 
@@ -37,10 +38,11 @@ curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor/historiska
 **Table identifier:** Find table by caption containing "Våra historiska genomsnittsräntor"
 
 **Table structure (transposed - months as rows, terms as columns):**
+
 | Bindningstid | 3 månader | 1 år | 2 år | 3 år | 4 år | 5 år | 7 år | 10 år | Banklån* |
 |--------------|-----------|------|------|------|------|------|------|-------|----------|
-| nov. 2025 | 2,65 | 2,84 | 2,84 | 2,90 | 2,99 | 3,07 | 3,34 | 3,30 | 4,88 |
-| okt. 2025 | 2,68 | 2,92 | 2,93 | 3,00 | 3,10 | 3,19 | 3,50 | 3,57 | 4,98 |
+| nov. 2025    | 2,65      | 2,84 | 2,84 | 2,90 | 2,99 | 3,07 | 3,34 | 3,30  | 4,88     |
+| okt. 2025    | 2,68      | 2,92 | 2,93 | 3,00 | 3,10 | 3,19 | 3,50 | 3,57  | 4,98     |
 
 **Data formats:**
 
@@ -51,20 +53,20 @@ curl -s 'https://www.swedbank.se/privat/boende-och-bolan/bolanerantor/historiska
 
 **Month abbreviations:**
 
-| Abbreviation | Full Name | Month |
-|--------------|-----------|-------|
-| jan. | januari | January |
-| feb. | februari | February |
-| mar. | mars | March |
-| apr. | april | April |
-| maj | maj | May |
-| jun. | juni | June |
-| jul. | juli | July |
-| aug. | augusti | August |
-| sep. | september | September |
-| okt. | oktober | October |
-| nov. | november | November |
-| dec. | december | December |
+| Abbreviation | Full Name | Month     |
+|--------------|-----------|-----------|
+| jan.         | januari   | January   |
+| feb.         | februari  | February  |
+| mar.         | mars      | March     |
+| apr.         | april     | April     |
+| maj          | maj       | May       |
+| jun.         | juni      | June      |
+| jul.         | juli      | July      |
+| aug.         | augusti   | August    |
+| sep.         | september | September |
+| okt.         | oktober   | October   |
+| nov.         | november  | November  |
+| dec.         | december  | December  |
 
 ---
 

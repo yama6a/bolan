@@ -13,11 +13,12 @@ curl -s 'https://www.bluestep.se/bolan/borantor/' \
 
 **Table identifier:** Search for text "Bolån*" before the table (or HTML-encoded "Bol&aring;n*")
 
-**Table structure:** The table has an unusual format with no `<th>` tags. Terms are in the first `<tr>` row and rates in the second row.
+**Table structure:** The table has an unusual format with no `<th>` tags. Terms are in the first `<tr>` row and rates in
+the second row.
 
 | Rörlig 3 månader | Fast 3 år | Fast 5 år |
 |------------------|-----------|-----------|
-| 4,45% | 4,60% | 4,68% |
+| 4,45%            | 4,60%     | 4,68%     |
 
 **Data formats:**
 
@@ -40,8 +41,8 @@ curl -s 'https://www.bluestep.se/bolan/borantor/genomsnittsrantor/' \
 
 **Table structure:** Standard HTML table with `<th>` header row
 
-| Månad | 3 mån | 1 år | 3 år | 5 år |
-|-------|-------|------|------|------|
+| Månad   | 3 mån | 1 år  | 3 år  | 5 år  |
+|---------|-------|-------|-------|-------|
 | 2025 11 | 5,68% | 6,63% | 6,83% | 6,33% |
 | 2025 10 | 5,98% | 6,27% | 6,75% | 5,93% |
 

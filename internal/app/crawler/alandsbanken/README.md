@@ -1,6 +1,7 @@
 ## Ålandsbanken
 
-Ålandsbanken uses a single HTML page containing both list rates and average rates. It's a Finnish bank operating in Sweden.
+Ålandsbanken uses a single HTML page containing both list rates and average rates. It's a Finnish bank operating in
+Sweden.
 
 ### Fetch Page
 
@@ -16,10 +17,11 @@ curl -s 'https://www.alandsbanken.se/banktjanster/lana-pengar/bolan' \
 **Table identifier:** Search for text "Aktuella räntor:" before the table
 
 **Table structure:**
+
 | Bindningstid | Räntesats % | Senaste ränteförändring | Förändring % |
 |--------------|-------------|-------------------------|--------------|
-| 3 mån | 3,85 % | 2025.10.03 | - 0,15 % |
-| 1 år | 3,45 % | 2025.10.03 | - 0,15 % |
+| 3 mån        | 3,85 %      | 2025.10.03              | - 0,15 %     |
+| 1 år         | 3,45 %      | 2025.10.03              | - 0,15 %     |
 
 **Data formats:**
 
@@ -32,10 +34,11 @@ curl -s 'https://www.alandsbanken.se/banktjanster/lana-pengar/bolan' \
 **Table identifier:** Search for text "Genomsnittlig bolåneränta" before the table
 
 **Table structure:**
-| Bindningstid | Genomsnittlig bolåneränta | Månad |
-|--------------|---------------------------|-------|
-| 3 mån | 2,59 % | Oktober 2025 |
-| 3 mån | 2,82 % | September 2025 |
+
+| Bindningstid | Genomsnittlig bolåneränta | Månad          |
+|--------------|---------------------------|----------------|
+| 3 mån        | 2,59 %                    | Oktober 2025   |
+| 3 mån        | 2,82 %                    | September 2025 |
 
 **Data formats:**
 

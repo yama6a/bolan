@@ -14,10 +14,11 @@ curl -s 'https://www.nordea.se/privat/produkter/bolan/listrantor.html' \
 **Table identifier:** Search for text "Listräntor för bolån" before the table
 
 **Table structure:**
-| Bindningstid | Ränta | Ändring | Senast ändrad |
-|--------------|-------|---------|---------------|
-| 3 mån | 3,33 % | -0,20 | 2025-10-06 |
-| 1 år | 3,44 % | -0,20 | 2025-07-10 |
+
+| Bindningstid | Ränta  | Ändring | Senast ändrad |
+|--------------|--------|---------|---------------|
+| 3 mån        | 3,33 % | -0,20   | 2025-10-06    |
+| 1 år         | 3,44 % | -0,20   | 2025-07-10    |
 
 **Data formats:**
 
