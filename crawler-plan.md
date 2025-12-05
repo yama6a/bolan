@@ -16,6 +16,7 @@
 - [x] Ålandsbanken
 - [x] Nordnet
 - [x] Hypoteket
+- [x] JAK Medlemsbank
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -30,7 +31,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 5  | Hypoteket                   | hypoteket.com       | **Done** | Digital-first, förhandlingsfri ränta, 65% max LTV                     |
 | 6  | ICA Banken                  | icabanken.se        | **Done** | Full term range                                                       |
 | 7  | Ikano Bank                  | ikanobank.se        | **Done** | Uses Borgo, full term range                                           |
-| 8  | JAK Medlemsbank             | jak.se              | To Add   | Ethical bank, only 3 mån and 1 år terms                               |
+| 8  | JAK Medlemsbank             | jak.se              | **Done** | Ethical bank, only 3 mån and 12 månader terms                         |
 | 9  | Landshypotek                | landshypotek.se     | **Done** | Also via Avanza/Bolån+, terms up to 5 år                              |
 | 10 | Länsförsäkringar (LF)       | lansforsakringar.se | Done     | Major player, full term range                                         |
 | 11 | Marginalen Bank             | marginalen.se       | To Add   | Specialty lender, complex rate structure (4.46-10.56%)                |
@@ -86,7 +87,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Marginalen Bank             | Higher approval rates                     | To Add   |
 | Nordax Bank/NOBA Bank Group | Non-prime lending                         | To Add   |
 | Svea Bank                   | Non-prime lending                         | To Add   |
-| JAK Medlemsbank             | Ethical/member-owned, interest-free model | To Add   |
+| JAK Medlemsbank             | Ethical/member-owned, interest-free model | **Done** |
 
 ## Priority Order for Implementation
 
@@ -110,7 +111,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 11. **Avanza Bank** - Variable rate only
 12. **Nordnet** - Variable rate only
-13. **JAK Medlemsbank** - Limited terms
+13. ~~**JAK Medlemsbank** - Limited terms~~ **Done**
 14. ~~**Bluestep Bank** - Specialty lender~~ **Done**
 15. **Marginalen Bank** - Non-prime
 16. **Nordax Bank** - Non-prime
@@ -191,9 +192,9 @@ fintech/digital lenders have stricter requirements.
 ## Summary
 
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 16 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
-  Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket)
-- **Remaining to add**: 5
+- **Already implemented**: 17 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
+  Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket, JAK Medlemsbank)
+- **Remaining to add**: 4
 
 ---
 
