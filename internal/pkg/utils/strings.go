@@ -44,6 +44,8 @@ func ParseTerm(data string) (model.Term, error) {
 		return "", ErrTermHeader
 	case strings.Contains(str, "3mån"), strings.Contains(str, "3mo"), strings.Contains(str, "3månader"):
 		return model.Term3months, nil
+	case strings.Contains(str, "6mån"), strings.Contains(str, "6mo"), strings.Contains(str, "6månader"):
+		return model.Term6months, nil
 	case strings.Contains(str, "1år"), strings.Contains(str, "1yr"):
 		return model.Term1year, nil
 	case strings.Contains(str, "2år"), strings.Contains(str, "2yr"):

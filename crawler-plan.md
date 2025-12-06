@@ -35,7 +35,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 8  | JAK Medlemsbank             | jak.se              | **Done**       | Ethical bank, only 3 mån and 12 månader terms                         |
 | 9  | Landshypotek                | landshypotek.se     | **Done**       | Also via Avanza/Bolån+, terms up to 5 år                              |
 | 10 | Länsförsäkringar (LF)       | lansforsakringar.se | **Done**       | Major player, full term range                                         |
-| 11 | Marginalen Bank             | marginalen.se       | To Add         | Specialty lender, complex rate structure (4.46-10.56%)                |
+| 11 | Marginalen Bank             | marginalen.se       | **Done**       | Specialty lender, complex rate structure (4.46-10.56%)                |
 | 12 | Nordax Bank/NOBA Bank Group | nordax.se           | To Add         | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%)                  |
 | 13 | Nordea                      | nordea.se           | **Done**       | Big Four                                                              |
 | 14 | Nordnet                     | nordnet.se          | **Done**       | Via Stabelo, multiple binding periods                                 |
@@ -85,7 +85,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Bank                        | Notes                                     | Status   |
 |-----------------------------|-------------------------------------------|----------|
 | Bluestep/Enity Bank Group   | Largest specialty lender in Nordics       | **Done** |
-| Marginalen Bank             | Higher approval rates                     | To Add   |
+| Marginalen Bank             | Higher approval rates                     | **Done** |
 | Nordax Bank/NOBA Bank Group | Non-prime lending                         | To Add   |
 | Svea Bank                   | Non-prime lending                         | **Done** |
 | JAK Medlemsbank             | Ethical/member-owned, interest-free model | **Done** |
@@ -924,31 +924,46 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 
 ### 15. Marginalen Bank
 
-**Status**: Ready to implement
-**Difficulty**: Medium
-**HTTP Method**: Basic net/http (curl works)
+**Status**: ✅ Implemented
+**Difficulty**: Medium (Episerver API integration)
+**HTTP Method**: Basic net/http via Episerver Content Delivery API
 
 **URLs**:
 
-- List Rates: `https://www.marginalen.se/privat/banktjanster/lan/bolan/`
-- Average Rates: `https://www.marginalen.se/privat/banktjanster/lan/flytta-eller-utoka-bolan/genomsnittlig-bolaneranta/`
+- List Rates: Not available (only publishes rate range)
+- Average Rates API: `https://www.marginalen.se/api/episerver/v3.0/content?contentUrl=%2Fprivat%2Fbanktjanster%2Flan%2Fflytta-eller-utoka-bolan%2Fgenomsnittlig-bolaneranta%2F&matchExact=true&expand=*`
+- Average Rates Page: `https://www.marginalen.se/privat/banktjanster/lan/flytta-eller-utoka-bolan/genomsnittlig-bolaneranta/` (Vue.js frontend)
 
-**Data Format**: HTML content with embedded rates
+**Data Format**: JSON response from Episerver CMS API with HTML embedded in body field
 
 **Rate Information**:
 
-- Rate range: 4.41% - 10.50%
+- Rate range: 4.41% - 10.50% (individual credit assessment)
 - Binding times: 3 months - 3 years
+- Max LTV: 85%
 
-**Terms Available**: 3 mån, 1 år, 2 år, 3 år
+**Terms Available**: 3 Mån, 6 Mån, 1 år, 2 år, 3 år
 
 **Implementation Notes**:
 
-- Specialty/non-prime lender
-- Accepts customers with betalningsanmärkningar (payment remarks)
-- Rates are displayed in content sections, not clean tables
-- May need more complex HTML parsing to extract rate data
-- Complex rate structure based on risk profile
+- **Important**: Only publishes average rates (snitträntor), NOT list rates
+- Specialty/non-prime lender accepting customers with betalningsanmärkningar
+- Uses Episerver (Optimizely) CMS with Content Delivery API
+- Vue.js frontend fetches content from API, but crawler accesses API directly
+- API returns JSON with nested structure: `[0].mainContentArea[0].mainContentArea[0].body`
+- HTML table embedded in JSON body field
+- Period format: YYYYMM (e.g., "202412" for December 2024)
+- Rate format: Swedish decimal with comma and percent (e.g., "5,92 %")
+- Missing values shown as "-" (fewer than 5 loans for FSA average calculation requirement)
+- 12 months of historical average rates across multiple terms
+
+**Files Created**:
+
+- `internal/app/crawler/marginalen/marginalen.go`
+- `internal/app/crawler/marginalen/marginalen_test.go`
+- `internal/app/crawler/marginalen/testdata/marginalen_api_response.json`
+- `internal/app/crawler/marginalen/testdata/marginalen_avg_rates.html`
+- `internal/app/crawler/marginalen/testdata/README.md`
 
 ---
 
@@ -1047,6 +1062,6 @@ Based on difficulty and market importance:
 12. **Hypoteket** - Nuxt.js payload JSON
 13. **Nordnet** - Contentful CMS API
 14. ~~**Länsförsäkringar** - JS-rendered (may need Playwright)~~ **Done** - Works with standard HTTP
-15. **Marginalen Bank** - Complex HTML parsing
+15. ~~**Marginalen Bank** - Episerver CMS API~~ **Done** - JSON API with embedded HTML
 16. **Nordax Bank** - HTML content parsing
 17. ~~**Svea Bank** - Average rates only~~ **Done**

@@ -6,6 +6,7 @@ import (
 
 const (
 	Term3months Term = "3m"
+	Term6months Term = "6m"
 	Term1year   Term = "1y"
 	Term2years  Term = "2y"
 	Term3years  Term = "3y"

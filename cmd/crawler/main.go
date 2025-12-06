@@ -17,6 +17,7 @@ import (
 	"github.com/yama6a/bolan-compare/internal/app/crawler/jak"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/landshypotek"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/lansforsakringar"
+	"github.com/yama6a/bolan-compare/internal/app/crawler/marginalen"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/nordea"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/nordnet"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/sbab"
@@ -68,6 +69,7 @@ func main() {
 		jak.NewJAKCrawler(httpClient, logger.Named("jak-crawler")),
 		svea.NewSveaCrawler(httpClient, logger.Named("svea-crawler")),
 		avanza.NewAvanzaCrawler(httpClient, logger.Named("avanza-crawler")),
+		marginalen.NewMarginalenCrawler(httpClient, logger.Named("marginalen-crawler")),
 	}
 
 	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))
