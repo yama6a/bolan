@@ -25,7 +25,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 | #  | Bank                        | Website             | Status   | Notes                                                                 |
 |----|-----------------------------|---------------------|----------|-----------------------------------------------------------------------|
-| 1  | Avanza Bank                 | avanza.se           | To Add   | Superbolånet product, variable rate only (2.01-2.25%)                 |
+| 1  | Avanza Bank                 | avanza.se           | **Done** | Bolån+ via Stabelo/Landshypotek, all terms available                  |
 | 2  | Bluestep/Enity Bank Group   | bluestep.se         | **Done** | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
 | 3  | Danske Bank                 | danskebank.se       | **Done** | Full term range                                                       |
 | 4  | Handelsbanken               | handelsbanken.se    | **Done** | Big Four, full term range                                             |
@@ -110,7 +110,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 ### Lower Priority (Limited products or specialty)
 
-11. **Avanza Bank** - Variable rate only
+11. ~~**Avanza Bank** - Multiple terms via Stabelo/Landshypotek~~ **Done**
 12. **Nordnet** - Variable rate only
 13. ~~**JAK Medlemsbank** - Limited terms~~ **Done**
 14. ~~**Bluestep Bank** - Specialty lender~~ **Done**
@@ -193,10 +193,10 @@ fintech/digital lenders have stricter requirements.
 ## Summary
 
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 18 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
+- **Already implemented**: 19 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
   Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket, JAK Medlemsbank,
-  Svea Bank)
-- **Remaining to add**: 3
+  Svea Bank, Avanza Bank)
+- **Remaining to add**: 2
 
 ---
 

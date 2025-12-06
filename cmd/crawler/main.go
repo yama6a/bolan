@@ -7,6 +7,7 @@ import (
 
 	"github.com/yama6a/bolan-compare/internal/app/crawler"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/alandsbanken"
+	"github.com/yama6a/bolan-compare/internal/app/crawler/avanza"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/bluestep"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/danskebank"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/handelsbanken"
@@ -66,6 +67,7 @@ func main() {
 		landshypotek.NewLandshypotekCrawler(httpClient, logger.Named("landshypotek-crawler")),
 		jak.NewJAKCrawler(httpClient, logger.Named("jak-crawler")),
 		svea.NewSveaCrawler(httpClient, logger.Named("svea-crawler")),
+		avanza.NewAvanzaCrawler(httpClient, logger.Named("avanza-crawler")),
 	}
 
 	pgStore := store.NewMemoryStore(nil, logger.Named("Store"))

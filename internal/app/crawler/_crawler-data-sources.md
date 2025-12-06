@@ -21,6 +21,7 @@ This document describes general information about crawler data sources and HTTP 
 | Ikano Bank    | `ikanobank`     | 1 JSON API + 1 HTML page         | List + Average | No                      | User-Agent             |
 | Ålandsbanken  | `alandsbanken`  | 1 HTML page                      | List + Average | No                      | User-Agent             |
 | Nordnet       | `nordnet`       | 1 JSON API                       | List only      | No                      | User-Agent             |
+| Avanza        | `avanza`        | 2 JSON APIs                      | List only      | No                      | User-Agent             |
 
 \* ICA Banken requires matching `User-Agent` and `Sec-Ch-Ua` headers (Chrome version must match in both)
 
@@ -41,6 +42,7 @@ Each crawler has its own package with detailed documentation:
 - **Ikano Bank**: See `internal/app/crawler/ikanobank/README.md`
 - **Ålandsbanken**: See `internal/app/crawler/alandsbanken/README.md`
 - **Nordnet**: See `internal/app/crawler/nordnet/testdata/README.md`
+- **Avanza**: See `internal/app/crawler/avanza/testdata/README.md`
 
 ---
 
