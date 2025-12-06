@@ -2,7 +2,6 @@ package bluestep
 
 import (
 	"errors"
-	"os"
 	"testing"
 	"time"
 
@@ -11,17 +10,6 @@ import (
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
 )
-
-func loadBluestepGoldenFile(t *testing.T, filename string) string {
-	t.Helper()
-
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		t.Fatalf("failed to load golden file %s: %v", filename, err)
-	}
-
-	return string(data)
-}
 
 func TestNewBluestepCrawler(t *testing.T) {
 	t.Parallel()
@@ -53,8 +41,8 @@ func TestBluestepCrawler_InterfaceCompliance(t *testing.T) {
 func TestBluestepCrawler_Crawl(t *testing.T) {
 	t.Parallel()
 
-	listHTML := loadBluestepGoldenFile(t, "testdata/bluestep_list_rates.html")
-	avgHTML := loadBluestepGoldenFile(t, "testdata/bluestep_avg_rates.html")
+	listHTML := crawlertest.LoadGoldenFile(t, "testdata/bluestep_list_rates.html")
+	avgHTML := crawlertest.LoadGoldenFile(t, "testdata/bluestep_avg_rates.html")
 	logger := zap.NewNop()
 
 	tests := []struct {
@@ -130,7 +118,7 @@ func runBluestepCrawl(t *testing.T, mockFetch func(string, map[string]string) (s
 func verifyBluestepCrawlResults(t *testing.T, results []model.InterestSet, wantListRates int, wantAvgRates bool, wantTotalMinimum int) {
 	t.Helper()
 
-	listRateCount, avgRateCount := countBluestepRatesByType(results)
+	listRateCount, avgRateCount := crawlertest.CountRatesByType(results)
 
 	if listRateCount != wantListRates {
 		t.Errorf("list rate count = %d, want %d", listRateCount, wantListRates)
@@ -144,33 +132,13 @@ func verifyBluestepCrawlResults(t *testing.T, results []model.InterestSet, wantL
 		t.Errorf("total results = %d, want at least %d", len(results), wantTotalMinimum)
 	}
 
-	for _, r := range results {
-		if r.Bank != bluestepBankName {
-			t.Errorf("expected bank %s, got %s", bluestepBankName, r.Bank)
-		}
-	}
-}
-
-// countBluestepRatesByType counts list rates and average rates from results.
-func countBluestepRatesByType(results []model.InterestSet) (listCount, avgCount int) {
-	for _, r := range results {
-		switch r.Type {
-		case model.TypeListRate:
-			listCount++
-		case model.TypeAverageRate:
-			avgCount++
-		case model.TypeRatioDiscounted, model.TypeUnionDiscounted:
-			// Bluestep doesn't use discounted rates
-		}
-	}
-
-	return listCount, avgCount
+	crawlertest.AssertBankName(t, results, bluestepBankName)
 }
 
 func TestBluestepCrawler_extractListRates(t *testing.T) {
 	t.Parallel()
 
-	goldenHTML := loadBluestepGoldenFile(t, "testdata/bluestep_list_rates.html")
+	goldenHTML := crawlertest.LoadGoldenFile(t, "testdata/bluestep_list_rates.html")
 	logger := zap.NewNop()
 	crawler := NewBluestepCrawler(nil, logger)
 	crawlTime := time.Now().UTC()
@@ -222,7 +190,7 @@ func TestBluestepCrawler_extractListRates(t *testing.T) {
 func TestBluestepCrawler_extractAverageRates(t *testing.T) {
 	t.Parallel()
 
-	goldenHTML := loadBluestepGoldenFile(t, "testdata/bluestep_avg_rates.html")
+	goldenHTML := crawlertest.LoadGoldenFile(t, "testdata/bluestep_avg_rates.html")
 	logger := zap.NewNop()
 	crawler := NewBluestepCrawler(nil, logger)
 	crawlTime := time.Now().UTC()
