@@ -11,6 +11,7 @@ import (
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"github.com/yama6a/bolan-compare/internal/pkg/utils"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 )
 
 const (
@@ -247,9 +248,22 @@ func (c *LandshypotekCrawler) findCurrentMonthAverageRatesTable(
 		return model.AvgMonth{}, utils.Table{}, fmt.Errorf("failed to parse month: %w", err)
 	}
 
-	tokenizer, err := utils.FindTokenizedTableByTextBeforeTable(relevantHTML, "Bindningstid")
-	if err != nil {
-		return model.AvgMonth{}, utils.Table{}, fmt.Errorf("failed to find average rates table: %w", err)
+	// Find the first table in this section - the table is directly after the month header.
+	// We can't search for "Bindningstid" because that text appears inside the table header,
+	// and FindTokenizedTableByTextBeforeTable would then find the *next* table (historical rates).
+	tokenizer := html.NewTokenizer(strings.NewReader(relevantHTML))
+	var foundTable bool
+	for tt := tokenizer.Next(); tt != html.ErrorToken; tt = tokenizer.Next() {
+		if tt == html.StartTagToken {
+			tn, _ := tokenizer.TagName()
+			if string(tn) == "table" {
+				foundTable = true
+				break
+			}
+		}
+	}
+	if !foundTable {
+		return model.AvgMonth{}, utils.Table{}, fmt.Errorf("failed to find average rates table")
 	}
 
 	table, err := utils.ParseTable(tokenizer)
