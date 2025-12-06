@@ -433,42 +433,14 @@ func TestSBABCrawler_InterfaceCompliance(t *testing.T) {
 // assertSBABListRateFields validates common fields for SBAB list rate results.
 func assertSBABListRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
 	t.Helper()
-
-	if r.Bank != sbabBankName {
-		t.Errorf("Bank = %q, want %q", r.Bank, sbabBankName)
-	}
-	if r.Type != model.TypeListRate {
-		t.Errorf("Type = %q, want %q", r.Type, model.TypeListRate)
-	}
-	if r.NominalRate <= 0 {
-		t.Errorf("NominalRate = %f, want positive value", r.NominalRate)
-	}
-	// SBAB API provides change dates (validFrom)
-	if r.ChangedOn == nil {
-		t.Error("ChangedOn is nil, want non-nil for SBAB")
-	}
-	if r.LastCrawledAt != crawlTime {
-		t.Errorf("LastCrawledAt = %v, want %v", r.LastCrawledAt, crawlTime)
-	}
+	crawlertest.AssertListRateFields(t, r, crawlertest.ListRateConfig{
+		Bank:           sbabBankName,
+		ExpectChangeOn: true, // SBAB API provides change dates (validFrom)
+	}, crawlTime)
 }
 
 // assertSBABAverageRateFields validates common fields for SBAB average rate results.
 func assertSBABAverageRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
 	t.Helper()
-
-	if r.Bank != sbabBankName {
-		t.Errorf("Bank = %q, want %q", r.Bank, sbabBankName)
-	}
-	if r.Type != model.TypeAverageRate {
-		t.Errorf("Type = %q, want %q", r.Type, model.TypeAverageRate)
-	}
-	if r.NominalRate <= 0 {
-		t.Errorf("NominalRate = %f, want positive value", r.NominalRate)
-	}
-	if r.AverageReferenceMonth == nil {
-		t.Error("AverageReferenceMonth is nil, want non-nil")
-	}
-	if r.LastCrawledAt != crawlTime {
-		t.Errorf("LastCrawledAt = %v, want %v", r.LastCrawledAt, crawlTime)
-	}
+	crawlertest.AssertAverageRateFields(t, r, sbabBankName, crawlTime)
 }

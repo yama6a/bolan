@@ -3,7 +3,6 @@ package nordea
 
 import (
 	"errors"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -17,53 +16,16 @@ import (
 // assertNordeaListRateFields validates common fields for Nordea list rate results.
 func assertNordeaListRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
 	t.Helper()
-
-	if r.Bank != nordeaBankName {
-		t.Errorf("Bank = %q, want %q", r.Bank, nordeaBankName)
-	}
-	if r.Type != model.TypeListRate {
-		t.Errorf("Type = %q, want %q", r.Type, model.TypeListRate)
-	}
-	if r.NominalRate <= 0 {
-		t.Errorf("NominalRate = %f, want positive value", r.NominalRate)
-	}
-	if r.ChangedOn == nil {
-		t.Error("ChangedOn is nil, want non-nil")
-	}
-	if r.LastCrawledAt != crawlTime {
-		t.Errorf("LastCrawledAt = %v, want %v", r.LastCrawledAt, crawlTime)
-	}
+	crawlertest.AssertListRateFields(t, r, crawlertest.ListRateConfig{
+		Bank:           nordeaBankName,
+		ExpectChangeOn: true, // Nordea provides ChangedOn dates
+	}, crawlTime)
 }
 
 // assertNordeaAvgRateFields validates common fields for Nordea average rate results.
 func assertNordeaAvgRateFields(t *testing.T, r model.InterestSet, crawlTime time.Time) {
 	t.Helper()
-
-	if r.Bank != nordeaBankName {
-		t.Errorf("Bank = %q, want %q", r.Bank, nordeaBankName)
-	}
-	if r.Type != model.TypeAverageRate {
-		t.Errorf("Type = %q, want %q", r.Type, model.TypeAverageRate)
-	}
-	if r.NominalRate <= 0 {
-		t.Errorf("NominalRate = %f, want positive value", r.NominalRate)
-	}
-	if r.AverageReferenceMonth == nil {
-		t.Error("AverageReferenceMonth is nil, want non-nil")
-	}
-	if r.LastCrawledAt != crawlTime {
-		t.Errorf("LastCrawledAt = %v, want %v", r.LastCrawledAt, crawlTime)
-	}
-}
-
-// loadGoldenFileBytes loads a binary golden file for testing.
-func loadGoldenFileBytes(t *testing.T, path string) []byte {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("failed to read golden file %s: %v", path, err)
-	}
-	return data
+	crawlertest.AssertAverageRateFields(t, r, nordeaBankName, crawlTime)
 }
 
 func TestNordeaCrawler_Crawl_Success(t *testing.T) {
@@ -71,7 +33,7 @@ func TestNordeaCrawler_Crawl_Success(t *testing.T) {
 
 	listRatesHTML := crawlertest.LoadGoldenFile(t, "testdata/nordea_list_rates.html")
 	historicRatesPageHTML := crawlertest.LoadGoldenFile(t, "testdata/nordea_historic_rates_page.html")
-	historicRatesXLSX := loadGoldenFileBytes(t, "testdata/nordea_historic_rates.xlsx")
+	historicRatesXLSX := crawlertest.LoadGoldenFileBytes(t, "testdata/nordea_historic_rates.xlsx")
 
 	mockClient := &httpmock.ClientMock{
 		FetchFunc: func(url string, _ map[string]string) (string, error) {
@@ -208,7 +170,7 @@ func TestNordeaCrawler_extractListRates(t *testing.T) {
 func TestNordeaCrawler_parseHistoricRatesXLSX(t *testing.T) {
 	t.Parallel()
 
-	xlsxData := loadGoldenFileBytes(t, "testdata/nordea_historic_rates.xlsx")
+	xlsxData := crawlertest.LoadGoldenFileBytes(t, "testdata/nordea_historic_rates.xlsx")
 	logger := zap.NewNop()
 	crawler := &NordeaCrawler{logger: logger}
 	crawlTime := time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC)

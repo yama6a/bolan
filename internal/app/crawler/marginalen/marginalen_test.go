@@ -2,7 +2,6 @@ package marginalen
 
 import (
 	"errors"
-	"os"
 	"testing"
 	"time"
 
@@ -11,17 +10,6 @@ import (
 	"github.com/yama6a/bolan-compare/internal/pkg/model"
 	"go.uber.org/zap"
 )
-
-func loadMarginalenGoldenFile(t *testing.T, filename string) string {
-	t.Helper()
-
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		t.Fatalf("failed to load golden file %s: %v", filename, err)
-	}
-
-	return string(data)
-}
 
 func TestNewMarginalenCrawler(t *testing.T) {
 	t.Parallel()
@@ -53,7 +41,7 @@ func TestMarginalenCrawler_InterfaceCompliance(t *testing.T) {
 func TestMarginalenCrawler_Crawl(t *testing.T) {
 	t.Parallel()
 
-	apiJSON := loadMarginalenGoldenFile(t, "testdata/marginalen_api_response.json")
+	apiJSON := crawlertest.LoadGoldenFile(t, "testdata/marginalen_api_response.json")
 	logger := zap.NewNop()
 
 	tests := []struct {
@@ -127,7 +115,7 @@ func TestMarginalenCrawler_Crawl(t *testing.T) {
 func TestMarginalenCrawler_ExtractAverageRates(t *testing.T) {
 	t.Parallel()
 
-	avgHTML := loadMarginalenGoldenFile(t, "testdata/marginalen_avg_rates.html")
+	avgHTML := crawlertest.LoadGoldenFile(t, "testdata/marginalen_avg_rates.html")
 	logger := zap.NewNop()
 	crawler := NewMarginalenCrawler(nil, logger)
 
