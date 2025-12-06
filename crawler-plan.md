@@ -17,6 +17,7 @@
 - [x] Nordnet
 - [x] Hypoteket
 - [x] JAK Medlemsbank
+- [x] Svea Bank
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -42,7 +43,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 16 | SEB                         | seb.se              | **Done** | Big Four                                                              |
 | 17 | Skandiabanken               | skandiabanken.se    | **Done** | Insurance bank, terms up to 5 år                                      |
 | 18 | Stabelo                     | stabelo.se          | To Add   | Also via Avanza/Bolån+ and Nordnet, data currently missing            |
-| 19 | Svea Bank                   | svea.com            | To Add   | Specialty lender, variable rate only (from 5.65%)                     |
+| 19 | Svea Bank                   | svea.com            | **Done** | Specialty lender, variable rate only (from 5.65%)                     |
 | 20 | Swedbank                    | swedbank.se         | **Done** | Big Four, largest market share (~25%), full term range                |
 | 21 | Ålandsbanken                | alandsbanken.se     | **Done** | Finnish bank in Sweden, full term range                               |
 
@@ -86,7 +87,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Bluestep/Enity Bank Group   | Largest specialty lender in Nordics       | **Done** |
 | Marginalen Bank             | Higher approval rates                     | To Add   |
 | Nordax Bank/NOBA Bank Group | Non-prime lending                         | To Add   |
-| Svea Bank                   | Non-prime lending                         | To Add   |
+| Svea Bank                   | Non-prime lending                         | **Done** |
 | JAK Medlemsbank             | Ethical/member-owned, interest-free model | **Done** |
 
 ## Priority Order for Implementation
@@ -192,9 +193,10 @@ fintech/digital lenders have stricter requirements.
 ## Summary
 
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 17 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
-  Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket, JAK Medlemsbank)
-- **Remaining to add**: 4
+- **Already implemented**: 18 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
+  Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket, JAK Medlemsbank,
+  Svea Bank)
+- **Remaining to add**: 3
 
 ---
 
@@ -980,7 +982,7 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 
 ### 17. Svea Bank
 
-**Status**: Ready to implement (Average rates only)
+**Status**: ✅ Implemented
 **Difficulty**: Easy
 **HTTP Method**: Basic net/http (curl works)
 
@@ -996,15 +998,26 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 
 **Important**: Only publishes average rates (snitträntor), NOT list rates!
 
-**Terms Available**: Variable rate only (rörlig ränta)
+**Terms Available**: Variable rate only (rörlig ränta = 3 månader)
 
 **Implementation Notes**:
 
 - Specialty/non-prime lender
-- Only offers variable rate mortgages
+- Only offers variable rate mortgages (3 månader term)
 - Only publishes monthly average rates, no list rates
 - Simple HTML table with month and rate columns
-- Accepts customers with betalningsanmärkningar
+- Table found using "Räntesats" text marker
+- Month format: Full Swedish month names (e.g., "November 2025")
+- Rate format: Swedish decimal with comma (e.g., "6,10 %")
+- 12 months of historical average rates
+- Accepts customers with betalningsanmärkningar (payment remarks)
+
+**Files Created**:
+
+- `internal/app/crawler/svea/svea.go`
+- `internal/app/crawler/svea/svea_test.go`
+- `internal/app/crawler/svea/testdata/svea_avg_rates.html`
+- `internal/app/crawler/svea/testdata/README.md`
 
 ---
 
@@ -1036,4 +1049,4 @@ Based on difficulty and market importance:
 14. ~~**Länsförsäkringar** - JS-rendered (may need Playwright)~~ **Done** - Works with standard HTTP
 15. **Marginalen Bank** - Complex HTML parsing
 16. **Nordax Bank** - HTML content parsing
-17. **Svea Bank** - Average rates only
+17. ~~**Svea Bank** - Average rates only~~ **Done**

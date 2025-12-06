@@ -83,23 +83,8 @@ func (c *LandshypotekCrawler) Crawl(channel chan<- model.InterestSet) {
 		interestSets = append(interestSets, historicalRates...)
 	}
 
-	// Log summary
-	discountedCount := len(discounted60Rates) + len(discounted75Rates)
-	c.logger.Info("Landshypotek rates extracted",
-		zap.Int("total", len(interestSets)),
-		zap.Int("discounted_rates", discountedCount),
-		zap.Int("list_rates", len(listRates)),
-		zap.Int("current_month_avg", len(avgRates)),
-		zap.Int("historical_avg", len(historicalRates)),
-	)
-
 	// Log individual rates
 	for _, set := range interestSets {
-		c.logger.Info("Landshypotek rate",
-			zap.String("type", string(set.Type)),
-			zap.String("term", string(set.Term)),
-			zap.Float64("rate", float64(set.NominalRate)),
-		)
 		channel <- set
 	}
 }
