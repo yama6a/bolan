@@ -18,6 +18,7 @@ import (
 	"github.com/yama6a/bolan-compare/internal/app/crawler/landshypotek"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/lansforsakringar"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/marginalen"
+	"github.com/yama6a/bolan-compare/internal/app/crawler/nordax"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/nordea"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/nordnet"
 	"github.com/yama6a/bolan-compare/internal/app/crawler/sbab"
@@ -63,6 +64,7 @@ func main() {
 		bluestep.NewBluestepCrawler(httpClient, logger.Named("bluestep-crawler")),
 		ikanobank.NewIkanoBankCrawler(httpClient, logger.Named("ikano-bank-crawler")),
 		alandsbanken.NewAlandsbankCrawler(httpClient, logger.Named("alandsbanken-crawler")),
+		nordax.NewNordaxCrawler(httpClient, logger.Named("nordax-crawler")),
 		nordnet.NewNordnetCrawler(httpClient, logger.Named("nordnet-crawler")),
 		lansforsakringar.NewLansforsakringarCrawler(httpClient, logger.Named("lansforsakringar-crawler")),
 		landshypotek.NewLandshypotekCrawler(httpClient, logger.Named("landshypotek-crawler")),

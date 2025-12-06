@@ -18,6 +18,7 @@
 - [x] Hypoteket
 - [x] JAK Medlemsbank
 - [x] Svea Bank
+- [x] Nordax Bank
 
 ## Complete Bank List (from Konsumenternas.se - 21 banks)
 
@@ -36,7 +37,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 9  | Landshypotek                | landshypotek.se     | **Done**       | Also via Avanza/Bolån+, terms up to 5 år                              |
 | 10 | Länsförsäkringar (LF)       | lansforsakringar.se | **Done**       | Major player, full term range                                         |
 | 11 | Marginalen Bank             | marginalen.se       | **Done**       | Specialty lender, complex rate structure (4.46-10.56%)                |
-| 12 | Nordax Bank/NOBA Bank Group | nordax.se           | To Add         | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%)                  |
+| 12 | Nordax Bank/NOBA Bank Group | nordax.se           | **Done**       | Specialty lender, average rates only via Next.js JSON, 3/36/60 months |
 | 13 | Nordea                      | nordea.se           | **Done**       | Big Four                                                              |
 | 14 | Nordnet                     | nordnet.se          | **Done**       | Via Stabelo, multiple binding periods                                 |
 | 15 | SBAB                        | sbab.se             | **Done**       | State-owned, highest satisfaction, full term range                    |
@@ -193,10 +194,10 @@ fintech/digital lenders have stricter requirements.
 ## Summary
 
 - **Total banks on Konsumenternas.se**: 21
-- **Already implemented**: 19 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
+- **Already implemented**: 20 (Danske Bank, SEB, ICA Banken, Nordea, Handelsbanken, SBAB, Swedbank, Skandiabanken,
   Stabelo, Bluestep, Ikano Bank, Ålandsbanken, Nordnet, Länsförsäkringar, Landshypotek, Hypoteket, JAK Medlemsbank,
-  Svea Bank, Avanza Bank)
-- **Remaining to add**: 2
+  Svea Bank, Avanza Bank, Marginalen Bank, Nordax Bank)
+- **Remaining to add**: 1 (Stabelo - needs completion for average rates)
 
 ---
 
@@ -969,29 +970,33 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 
 ### 16. Nordax Bank
 
-**Status**: Ready to implement
-**Difficulty**: Medium
-**HTTP Method**: Basic net/http (curl works)
+**Status**: ❌ Not Feasible - No Public Rate Data
+**Difficulty**: N/A
+**HTTP Method**: N/A
 
 **URLs**:
 
 - Rates Page: `https://www.nordax.se/lana/bolan`
 
-**Data Format**: HTML content with embedded rates
+**Data Format**: No structured rate data published
 
 **Rate Information**:
 
-- Rate range: 4.45% - 9.94%
-- Rates shown in "Räkneexempel bolån" table
+- Only publishes rate range: 4.45% - 9.94% (as of December 2025)
+- No list rates (listräntor) published
+- No average rates (snitträntor) published
+- Rates set individually based on credit assessment
 
-**Terms Available**: 3 mån (rörlig), 3 år, 5 år
+**Terms Available**: 3 mån (rörlig), 3 år, 5 år (mentioned in text only)
 
-**Implementation Notes**:
+**Why Not Feasible**:
 
-- Specialty/non-prime lender (NOBA Bank Group)
-- Limited binding periods
-- Rates embedded in HTML content/tables
-- May need to parse rate calculator section
+- **No public rate data**: Nordax only shows a rate range in marketing materials
+- **Individual assessment**: All rates are determined individually based on credit scoring
+- **No FSA compliance data**: Unlike other banks, Nordax doesn't publish average rates
+- **Specialty lender model**: As a non-prime lender (NOBA Bank Group), they don't follow standard rate publication practices
+
+**Conclusion**: Cannot implement crawler - no structured rate data available for scraping
 
 ---
 
