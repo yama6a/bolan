@@ -43,7 +43,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | 15 | SBAB                        | sbab.se             | **Done**       | State-owned, highest satisfaction, full term range                    |
 | 16 | SEB                         | seb.se              | **Done**       | Big Four                                                              |
 | 17 | Skandiabanken               | skandiabanken.se    | **Done**       | Insurance bank, terms up to 5 år                                      |
-| 18 | Stabelo                     | stabelo.se          | partially done | Also via Avanza/Bolån+ and Nordnet, data currently missing            |
+| 18 | Stabelo                     | stabelo.se          | **Done** | Also via Avanza/Bolån+ and Nordnet, data currently missing            |
 | 19 | Svea Bank                   | svea.com            | **Done**       | Specialty lender, variable rate only (from 5.65%)                     |
 | 20 | Swedbank                    | swedbank.se         | **Done**       | Big Four, largest market share (~25%), full term range                |
 | 21 | Ålandsbanken                | alandsbanken.se     | **Done**       | Finnish bank in Sweden, full term range                               |
@@ -77,7 +77,7 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 | Bank        | Notes                                 | Status         |
 |-------------|---------------------------------------|----------------|
 | Hypoteket   | Digital-first, negotiation-free rates | **Done**       |
-| Stabelo     | Fintech, via Avanza/Nordnet           | partially done |
+| Stabelo     | Fintech, via Avanza/Nordnet           | **Done** |
 | Avanza Bank | Superbolånet, variable only           | To Add         |
 | Nordnet     | Variable only, uses other providers   | To Add         |
 
@@ -171,7 +171,7 @@ fintech/digital lenders have stricter requirements.
 | Landshypotek                 | 75%     | 25%               | Rural/agricultural property focus              |
 | Hypoteket                    | 65%     | 35%               | Digital-first, förhandlingsfri ränta           |
 | Stabelo                      | 60%     | 40%               | Fintech, via Avanza/Nordnet                    |
-| Avanza (Superbolånet)        | 60%     | 40%               | Via Stabelo, variable rate only                |
+| Avanza                       | ?       | ?                 | Via Stabelo, Landshypoteket                    |
 | Nordnet                      | 50-60%  | 40-50%            | Via Stabelo, best rates at ≤50% LTV            |
 
 ### Key Observations
@@ -932,8 +932,11 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 **URLs**:
 
 - List Rates: Not available (only publishes rate range)
-- Average Rates API: `https://www.marginalen.se/api/episerver/v3.0/content?contentUrl=%2Fprivat%2Fbanktjanster%2Flan%2Fflytta-eller-utoka-bolan%2Fgenomsnittlig-bolaneranta%2F&matchExact=true&expand=*`
-- Average Rates Page: `https://www.marginalen.se/privat/banktjanster/lan/flytta-eller-utoka-bolan/genomsnittlig-bolaneranta/` (Vue.js frontend)
+- Average Rates API:
+  `https://www.marginalen.se/api/episerver/v3.0/content?contentUrl=%2Fprivat%2Fbanktjanster%2Flan%2Fflytta-eller-utoka-bolan%2Fgenomsnittlig-bolaneranta%2F&matchExact=true&expand=*`
+- Average Rates Page:
+  `https://www.marginalen.se/privat/banktjanster/lan/flytta-eller-utoka-bolan/genomsnittlig-bolaneranta/` (Vue.js
+  frontend)
 
 **Data Format**: JSON response from Episerver CMS API with HTML embedded in body field
 
@@ -994,7 +997,8 @@ The Contentful API returns entries including a `componentTable` entry with rate 
 - **No public rate data**: Nordax only shows a rate range in marketing materials
 - **Individual assessment**: All rates are determined individually based on credit scoring
 - **No FSA compliance data**: Unlike other banks, Nordax doesn't publish average rates
-- **Specialty lender model**: As a non-prime lender (NOBA Bank Group), they don't follow standard rate publication practices
+- **Specialty lender model**: As a non-prime lender (NOBA Bank Group), they don't follow standard rate publication
+  practices
 
 **Conclusion**: Cannot implement crawler - no structured rate data available for scraping
 
