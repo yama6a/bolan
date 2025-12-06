@@ -34,15 +34,7 @@ Each bank crawler is in its own package:
 - `alandsbanken/` - Ålandsbanken
 - `bluestep/` - Bluestep
 - `danskebank/` - Danske Bank
-- `handelsbanken/` - Handelsbanken
-- `icabanken/` - ICA Banken
-- `ikanobank/` - Ikano Bank
-- `nordea/` - Nordea
-- `sbab/` - SBAB
-- `seb/` - SEB
-- `skandia/` - Skandia
-- `stabelo/` - Stabelo
-- `swedbank/` - Swedbank
+- ...
 
 ## Commands
 

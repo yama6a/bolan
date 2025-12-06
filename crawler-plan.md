@@ -23,29 +23,29 @@
 
 The following banks are listed on the official Konsumenternas.se comparison (updated 2025-11-28):
 
-| #  | Bank                        | Website             | Status   | Notes                                                                 |
-|----|-----------------------------|---------------------|----------|-----------------------------------------------------------------------|
-| 1  | Avanza Bank                 | avanza.se           | **Done** | Bolån+ via Stabelo/Landshypotek, all terms available                  |
-| 2  | Bluestep/Enity Bank Group   | bluestep.se         | **Done** | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
-| 3  | Danske Bank                 | danskebank.se       | **Done** | Full term range                                                       |
-| 4  | Handelsbanken               | handelsbanken.se    | **Done** | Big Four, full term range                                             |
-| 5  | Hypoteket                   | hypoteket.com       | **Done** | Digital-first, förhandlingsfri ränta, 65% max LTV                     |
-| 6  | ICA Banken                  | icabanken.se        | **Done** | Full term range                                                       |
-| 7  | Ikano Bank                  | ikanobank.se        | **Done** | Uses Borgo, full term range                                           |
-| 8  | JAK Medlemsbank             | jak.se              | **Done** | Ethical bank, only 3 mån and 12 månader terms                         |
-| 9  | Landshypotek                | landshypotek.se     | **Done** | Also via Avanza/Bolån+, terms up to 5 år                              |
-| 10 | Länsförsäkringar (LF)       | lansforsakringar.se | Done     | Major player, full term range                                         |
-| 11 | Marginalen Bank             | marginalen.se       | To Add   | Specialty lender, complex rate structure (4.46-10.56%)                |
-| 12 | Nordax Bank/NOBA Bank Group | nordax.se           | To Add   | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%)                  |
-| 13 | Nordea                      | nordea.se           | **Done** | Big Four                                                              |
-| 14 | Nordnet                     | nordnet.se          | **Done** | Via Stabelo, multiple binding periods                                 |
-| 15 | SBAB                        | sbab.se             | **Done** | State-owned, highest satisfaction, full term range                    |
-| 16 | SEB                         | seb.se              | **Done** | Big Four                                                              |
-| 17 | Skandiabanken               | skandiabanken.se    | **Done** | Insurance bank, terms up to 5 år                                      |
-| 18 | Stabelo                     | stabelo.se          | To Add   | Also via Avanza/Bolån+ and Nordnet, data currently missing            |
-| 19 | Svea Bank                   | svea.com            | **Done** | Specialty lender, variable rate only (from 5.65%)                     |
-| 20 | Swedbank                    | swedbank.se         | **Done** | Big Four, largest market share (~25%), full term range                |
-| 21 | Ålandsbanken                | alandsbanken.se     | **Done** | Finnish bank in Sweden, full term range                               |
+| #  | Bank                        | Website             | Status         | Notes                                                                 |
+|----|-----------------------------|---------------------|----------------|-----------------------------------------------------------------------|
+| 1  | Avanza Bank                 | avanza.se           | **Done**       | Bolån+ via Stabelo/Landshypotek, all terms available                  |
+| 2  | Bluestep/Enity Bank Group   | bluestep.se         | **Done**       | Specialty lender, 3 mån/3 år/5 år terms, high rate range (4.45-9.30%) |
+| 3  | Danske Bank                 | danskebank.se       | **Done**       | Full term range                                                       |
+| 4  | Handelsbanken               | handelsbanken.se    | **Done**       | Big Four, full term range                                             |
+| 5  | Hypoteket                   | hypoteket.com       | **Done**       | Digital-first, förhandlingsfri ränta, 65% max LTV                     |
+| 6  | ICA Banken                  | icabanken.se        | **Done**       | Full term range                                                       |
+| 7  | Ikano Bank                  | ikanobank.se        | **Done**       | Uses Borgo, full term range                                           |
+| 8  | JAK Medlemsbank             | jak.se              | **Done**       | Ethical bank, only 3 mån and 12 månader terms                         |
+| 9  | Landshypotek                | landshypotek.se     | **Done**       | Also via Avanza/Bolån+, terms up to 5 år                              |
+| 10 | Länsförsäkringar (LF)       | lansforsakringar.se | **Done**       | Major player, full term range                                         |
+| 11 | Marginalen Bank             | marginalen.se       | To Add         | Specialty lender, complex rate structure (4.46-10.56%)                |
+| 12 | Nordax Bank/NOBA Bank Group | nordax.se           | To Add         | Specialty lender, 3 mån/3 år/5 år terms (4.45-9.94%)                  |
+| 13 | Nordea                      | nordea.se           | **Done**       | Big Four                                                              |
+| 14 | Nordnet                     | nordnet.se          | **Done**       | Via Stabelo, multiple binding periods                                 |
+| 15 | SBAB                        | sbab.se             | **Done**       | State-owned, highest satisfaction, full term range                    |
+| 16 | SEB                         | seb.se              | **Done**       | Big Four                                                              |
+| 17 | Skandiabanken               | skandiabanken.se    | **Done**       | Insurance bank, terms up to 5 år                                      |
+| 18 | Stabelo                     | stabelo.se          | partially done | Also via Avanza/Bolån+ and Nordnet, data currently missing            |
+| 19 | Svea Bank                   | svea.com            | **Done**       | Specialty lender, variable rate only (from 5.65%)                     |
+| 20 | Swedbank                    | swedbank.se         | **Done**       | Big Four, largest market share (~25%), full term range                |
+| 21 | Ålandsbanken                | alandsbanken.se     | **Done**       | Finnish bank in Sweden, full term range                               |
 
 ## Banks by Category
 
@@ -73,12 +73,12 @@ The following banks are listed on the official Konsumenternas.se comparison (upd
 
 ### Digital/Fintech Mortgage Providers
 
-| Bank        | Notes                                 | Status |
-|-------------|---------------------------------------|--------|
-| Hypoteket   | Digital-first, negotiation-free rates | **Done** |
-| Stabelo     | Fintech, via Avanza/Nordnet           | To Add |
-| Avanza Bank | Superbolånet, variable only           | To Add |
-| Nordnet     | Variable only, uses other providers   | To Add |
+| Bank        | Notes                                 | Status         |
+|-------------|---------------------------------------|----------------|
+| Hypoteket   | Digital-first, negotiation-free rates | **Done**       |
+| Stabelo     | Fintech, via Avanza/Nordnet           | partially done |
+| Avanza Bank | Superbolånet, variable only           | To Add         |
+| Nordnet     | Variable only, uses other providers   | To Add         |
 
 ### Specialty/Non-Prime Lenders
 
