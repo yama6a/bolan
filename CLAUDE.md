@@ -14,12 +14,12 @@
 cmd/crawler/                        # Main entrypoint (instantiates singletons)
 internal/app/crawler/               # Crawler base package (SiteCrawler interface, testing helpers)
 internal/app/crawler/{bank}/        # Each bank has its own package
+  │── README.md                     # Bank-specific documentation
   ├── {bank}.go                     # Crawler implementation
   ├── {bank}_test.go                # Tests
   ├── testdata/                     # Golden files (HTML/JSON/XLSX)
   │   ├── {bank}_list_rates.*       # List rate test data
   │   ├── {bank}_avg_rates.*        # Average rate test data
-  │   └── README.md                 # Bank-specific documentation
 internal/pkg/http/                  # HTTP client interface + implementation
 internal/pkg/http/httpmock/         # Generated mocks (via moq)
 internal/pkg/model/                 # Data models (InterestSet, Term, Bank, Type)
@@ -67,10 +67,11 @@ When adding a new bank crawler, the following files must be created or modified:
 
 1. `internal/app/crawler/{bank_name}/{bank_name}.go` - Crawler implementation
 2. `internal/app/crawler/{bank_name}/{bank_name}_test.go` - Tests
-3. `internal/app/crawler/{bank_name}/testdata/` - Directory for golden files
+3. `internal/app/crawler/{bank_name}/README.md` - Bank-specific documentation (URLs, headers, data formats)
+4. `internal/app/crawler/{bank_name}/testdata/` - Directory for golden files
     - `{bank_name}_list_rates.*` - List rate test data (HTML/JSON/XLSX)
     - `{bank_name}_avg_rates.*` - Average rate test data (HTML/JSON/XLSX)
-    - `README.md` - Bank-specific documentation (URLs, headers, data formats)
+    - **Exception**: If a bank publishes both rate types on a single page/source, you may use a single golden file (e.g., `{bank_name}.html`) containing both datasets. Document this in the bank's README.md.
 
 ### Files to Modify
 
@@ -103,8 +104,8 @@ When adding a new bank crawler, the following files must be created or modified:
 internal/app/crawler/examplebank/
 ├── examplebank.go           # Implementation
 ├── examplebank_test.go      # Tests
+├── README.md                # Bank-specific docs
 └── testdata/
-    ├── README.md            # Bank-specific docs
     ├── examplebank_list_rates.json
     └── examplebank_avg_rates.html
 ```
@@ -159,11 +160,12 @@ Always add compile-time interface checks: `var _ SiteCrawler = &BankNameCrawler{
 
 ## Robustness Requirements
 
-### Never Hardcode Terms
+### Never Hardcode Terms (in Production Code)
 
-- **Always read terms from source** using `utils.ParseTerm()` - never hardcode term lists
+- **In crawler implementation**: Always read terms from source using `utils.ParseTerm()` - never hardcode term lists
 - Terms should be extracted dynamically from table headers, XLSX headers, or JSON keys
 - This makes crawlers resilient to banks adding/removing terms
+- **In tests**: Hardcoded expected terms are acceptable for assertions and test validation
 
 ### Dynamic Link Discovery
 
@@ -183,7 +185,7 @@ Always add compile-time interface checks: `var _ SiteCrawler = &BankNameCrawler{
 - Don't use external HTTP client libraries (use standard `net/http`)
 - Don't panic on parse errors (log and continue)
 - Don't hardcode rate values (always fetch from source)
-- Don't hardcode terms - always read from source
+- Don't hardcode terms in production code - always read from source (tests may hardcode expected terms)
 - Don't hardcode filenames for downloadable files - discover them dynamically
 - Don't skip `make lint` - CI will fail
 - Don't commit without running `make ci`

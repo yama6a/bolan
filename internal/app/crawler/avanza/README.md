@@ -62,6 +62,20 @@ curl -s 'https://www.avanza.se/_api/external-mortgage-lhb/interest-table' \
   -H 'User-Agent: Mozilla/5.0' > avanza_lhb_rates.json
 ```
 
+## Golden File Naming Exception
+
+This crawler deviates from the standard `{bank}_list_rates.*` naming convention because:
+
+- Avanza offers mortgages through two partners (Stabelo and Landshypotek)
+- Each partner has a separate API endpoint
+- Each partner offers different terms:
+  - Stabelo: 3 mån, 1 år, 2 år, 3 år, 5 år, 10 år (no 4 år)
+  - Landshypotek: 3 mån, 1 år, 2 år, 3 år, 4 år, 5 år (no 10 år)
+
+Therefore, we maintain separate golden files per partner:
+- `avanza_stabelo_rates.json` - List rates from Stabelo API
+- `avanza_lhb_rates.json` - List rates from Landshypotek API
+
 ## Notes
 
 - Avanza is an intermediary; they don't issue mortgages directly

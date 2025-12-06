@@ -121,10 +121,12 @@ func TestAvanzaCrawler_Crawl(t *testing.T) {
 			crawlertest.AssertBankName(t, results, avanzaBankName)
 
 			// All results should be list rates (no average rates from Avanza)
-			for _, r := range results {
-				if r.Type != model.TypeListRate {
-					t.Errorf("got type %q, want %q", r.Type, model.TypeListRate)
-				}
+			listCount, avgCount := crawlertest.CountRatesByType(results)
+			if avgCount != 0 {
+				t.Errorf("got %d average rates, want 0", avgCount)
+			}
+			if listCount != len(results) {
+				t.Errorf("got %d list rates out of %d total, want all to be list rates", listCount, len(results))
 			}
 		})
 	}
@@ -150,8 +152,12 @@ func TestAvanzaCrawler_fetchRates(t *testing.T) {
 		t.Fatalf("fetchRates() error = %v", err)
 	}
 
-	if len(results) != 6 {
-		t.Errorf("fetchRates() returned %d results, want 6", len(results))
+	listCount, avgCount := crawlertest.CountRatesByType(results)
+	if listCount != 6 {
+		t.Errorf("fetchRates() returned %d list rates, want 6", listCount)
+	}
+	if avgCount != 0 {
+		t.Errorf("fetchRates() returned %d average rates, want 0", avgCount)
 	}
 
 	// Verify expected terms are present for Stabelo
@@ -198,8 +204,12 @@ func TestAvanzaCrawler_fetchRates_LHB(t *testing.T) {
 		t.Fatalf("fetchRates() error = %v", err)
 	}
 
-	if len(results) != 6 {
-		t.Errorf("fetchRates() returned %d results, want 6", len(results))
+	listCount, avgCount := crawlertest.CountRatesByType(results)
+	if listCount != 6 {
+		t.Errorf("fetchRates() returned %d list rates, want 6", listCount)
+	}
+	if avgCount != 0 {
+		t.Errorf("fetchRates() returned %d average rates, want 0", avgCount)
 	}
 
 	// Verify expected terms are present for Landshypotek
